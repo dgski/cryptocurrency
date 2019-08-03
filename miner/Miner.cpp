@@ -69,8 +69,7 @@ void Miner::mine()
 
         if(res)
         {
-            proof.value.store(nonce);
-            proof.waiting.store(true);
+            proof.set(nonce);
             return;
         }
 
