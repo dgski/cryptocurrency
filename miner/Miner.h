@@ -2,6 +2,9 @@
 #include <atomic>
 #include <thread>
 #include <sstream>
+#include <optional>
+
+#include "../shared/Message.h"
 
 using i32 = std::int32_t;
 using i64 = std::int64_t;
@@ -10,7 +13,7 @@ using u64 = std::uint64_t;
 template<typename T>
 class AtomicChannel
 {
-    std::atomic<bool> waiting{false};
+    std::atomic<bool> waiting = false;
     std::atomic<T> value;
 public:
     bool ready()
@@ -20,16 +23,12 @@ public:
 
     T get()
     {
-        if(ready() == false)
-            throw std::runtime_error("Cannot get(): Atomic Channel Value is not Ready.");
         waiting.store(false);
         return value.load();
     }
 
     void set(T _value)
     {
-        if(ready() == true)
-            throw std::runtime_error("Cannot set(): Atomic Channel Value is Ready.");
         value.store(_value);
         waiting.store(true);
     }
@@ -37,13 +36,15 @@ public:
 
 class Miner
 {
+    i32 incomingFromManager;
+
     bool currentlyMining = false;
     AtomicChannel<u64> proof;
     AtomicChannel<u64> baseHash;
 public:
-    Miner() {}
+    Miner();
     void run();
-    i32 getMessage();
+    std::optional<Message> getMessage();
     bool validProof(u64 nonce, u64 hash) const;
     void startMining();
     void stopMining();
