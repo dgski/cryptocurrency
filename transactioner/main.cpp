@@ -1,4 +1,4 @@
-#include "Manager.h"
+#include "Transactioner.h"
 
 int main(int argc, const char* argv[])
 {
@@ -8,7 +8,7 @@ int main(int argc, const char* argv[])
         return -1;
     }
 
-    Manager manager{ argv[1] };
-    manager.run();
+    Transactioner transactioner{argv[1]};
+    transactioner.run();
     return 0;
 }

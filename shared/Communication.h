@@ -9,14 +9,9 @@
 #include <arpa/inet.h> 
 #include <unistd.h> 
 #include <string.h> 
-
 #include <vector>
 
-using i32 = std::int32_t;
-using i64 = std::int64_t;
-using u32 = std::uint32_t;
-using u64 = std::uint64_t;
-using byte = std::byte;
+#include "Types.h"
 
 struct Message
 {
@@ -64,7 +59,7 @@ struct ServerConnection
     std::vector<int> sockets;
     sockaddr_in address;
 
-    void start(const char* ip, int port)
+    void init(const char* ip, int port)
     {
         if ((serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
         { 
@@ -85,7 +80,7 @@ struct ServerConnection
         }
     }
 
-    std::vector<int> accept_new_connections()
+std::vector<int> acceptNewConnections(bool wait =  false)
     {
         std::vector<int> establishedThisRound;
 
@@ -100,10 +95,14 @@ struct ServerConnection
         FD_ZERO(&read_fd_set); 
         FD_SET(serverFileDescriptor, &read_fd_set);
 
-        int retval = select(serverFileDescriptor+1, &read_fd_set, NULL, NULL, &timeout);
-        if(retval <= 0)
+        if(!wait)
         {
-            return {};
+            int retval;
+            retval = select(serverFileDescriptor+1, &read_fd_set, NULL, NULL, &timeout);
+            if(retval <= 0)
+            {
+                return {};
+            }
         }
 
         if((new_socket = accept(serverFileDescriptor, (sockaddr *)&address, (socklen_t*)&addrlen)) >= 0)
@@ -118,5 +117,48 @@ struct ServerConnection
         }
 
         return establishedThisRound;
+    }
+};
+
+struct ClientConnection
+{
+    int socketFileDescriptor;
+
+    void init(const char* ip, int port)
+    {
+        sockaddr_in serv_addr;
+
+        socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+        if (socketFileDescriptor < 0)
+        { 
+            std::cout << "Socket creation error" << std::endl;
+            return;
+        } 
+    
+        serv_addr.sin_family = AF_INET; 
+        serv_addr.sin_port = htons(port); 
+        
+        if(inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0)  
+        { 
+            std::cout << "Invalid address/ Address not supported" << std::endl;
+            return; 
+        } 
+    
+        if (connect(socketFileDescriptor, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
+        { 
+            std::cout << "Connection Failed" << std::endl;
+            return; 
+        }
+
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 10;
+        setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+        setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+    }
+
+    int getSocket() const
+    {
+        return socketFileDescriptor;
     }
 };

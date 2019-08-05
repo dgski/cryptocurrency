@@ -11,14 +11,14 @@ std::optional<Message> getMessage(int socket)
     }
 
     bytesRead = read(socket, &msg.size, 8);
-    if(bytesRead == 0)
+    if(bytesRead == -1)
     {
         return std::nullopt;
     }
     
     msg.data.resize(msg.size);
     bytesRead = read(socket, msg.data.data(), msg.size);
-    if(bytesRead == 0)
+    if(bytesRead == -1)
     {
         return std::nullopt;
     }

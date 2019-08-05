@@ -1,44 +1,22 @@
 #include "Miner.h"
 
-Miner::Miner(const char* ip, const char* port)
+Miner::Miner(const char* iniFileName)
 {
-    std::cout << "Miner ip=" << ip << " port=" << port << std::endl;
-    sockaddr_in serv_addr;
+    std::cout << "Miner Module Starting" << std::endl;
 
-    incomingFromManager = socket(AF_INET, SOCK_STREAM, 0);
-    if (incomingFromManager < 0)
-    { 
-        std::cout << "Socket creation error" << std::endl;
-        return;
-    } 
-   
-    serv_addr.sin_family = AF_INET; 
-    serv_addr.sin_port = htons(atoi(port)); 
-       
-    if(inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0)  
-    { 
-        std::cout << "Invalid address/ Address not supported" << std::endl;
-        return; 
-    } 
-   
-    if (connect(incomingFromManager, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
-    { 
-        std::cout << "Connection Failed" << std::endl;
-        return; 
-    }
+    std::map<str,str> params = getInitParameters(iniFileName);
 
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 10;
-    setsockopt(incomingFromManager, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-    setsockopt(incomingFromManager, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+    connToManager.init(
+        params["connToManagerIP"].c_str(),
+        atoi(params["connToManagerPORT"].c_str())
+    );
 }
 
 void Miner::run()
 {
     while(true)
     {
-        std::optional<Message> msg = getMessage(incomingFromManager);
+        std::optional<Message> msg = getMessage(connToManager.getSocket());
         if(msg.has_value())
         {
             Parser parser(msg.value());
@@ -64,7 +42,7 @@ void Miner::run()
             Message msg;
             msg.id = 2;
             msg.compose_u64(proofValue);
-            sendMessage(incomingFromManager, msg);
+            sendMessage(connToManager.getSocket(), msg);
             return;
         }
 

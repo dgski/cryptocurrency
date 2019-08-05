@@ -1,35 +1,51 @@
-#include <iostream>
-#include <thread>
+#include "../shared/Module.h"
 
-#include "../shared/Communication.h"
-
-class Manager
+class Manager : Module
 {
-    ServerConnection miners;
+    AtomicChannel<u64> currentBaseHash;
+    ServerConnection connFromMiners;
+    ServerConnection connFromTransactioner;
 public:
-    Manager(const char* ip, const char* port)
+    Manager(const char* iniFileName)
     {
-        miners.start(ip, atoi(port));
+        std::cout << "Manager Module Starting" << std::endl;
+
+        std::map<str,str> params = getInitParameters(iniFileName);
+
+        connFromMiners.init(
+            params["connFromMinersIP"].c_str(),
+            atoi(params["connFromMinersPORT"].c_str())
+        );
+
+        connFromTransactioner.init(
+            params["connFromTransactionerIP"].c_str(),
+            atoi(params["connFromTransactionerPORT"].c_str()) 
+        );
+        
+        currentBaseHash.set(12393939334343); // FAKE
     }
 
     void run()
     {
+        connFromTransactioner.acceptNewConnections(true);
+
         while(true)
         {
-            //std::cout << "Cycle" << std::endl;
+            std::cout << "Cycle" << std::endl;
 
-            // Check for new Connections
-            auto v = miners.accept_new_connections();
-            for(int socket : v)
+            // Connect to New Miners
+            std::vector<int> newConnections = connFromMiners.acceptNewConnections();
+            u64 newHashToSend = currentBaseHash.get();
+            for(int socket : newConnections)
             {
                 Message msg;
                 msg.id = 1;
-                msg.compose_u64(12393939334343);
+                msg.compose_u64(newHashToSend);
                 sendMessage(socket, msg);
             }
-
-            // Check for new Messages
-            for(int s : miners.sockets)
+            
+            // Check if any miner has send the proof of work
+            for(int s : connFromMiners.sockets)
             {
                 std::optional<Message> msg = getMessage(s);
                 if(msg.has_value())
@@ -40,25 +56,27 @@ public:
                     std::cout << "Received Proof of Work:" << proofOfWork << std::endl;
                     return;
                 }
-            }            
-
-            //std::cout << "FakeManager running. Send new hash?" << std::endl;
-            //char c;
-            //std::cin >> c;
-            /*
-            if(c == 'y')
-            {
-                std::cout << "Sending New Hash" << std::endl;
-                Message msg;
-                msg.id = 1;
-                msg.compose_u64(100);
-
-                for(int s : miners.sockets)
-                    sendMessage(s, msg);
             }
-            */
 
-            std::this_thread::sleep_for (std::chrono::milliseconds(1));
+            // Ask Transactioner for new transactions
+            for(int socket : connFromTransactioner.sockets)
+            {
+                Message msg;
+                msg.id = 3;
+                sendMessage(socket, msg);
+            }
+
+            // Transactioner sent new transactions
+            for(int socket : connFromTransactioner.sockets)
+            {
+                std::optional<Message> msg = getMessage(socket);
+                if(msg.has_value())
+                {
+                    std::cout << "Received new Transactions from Transactioner" << std::endl;
+                }
+            }
+            
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
 };
