@@ -1,87 +1,64 @@
 #include <iostream>
+#include <thread>
 
-#include "../shared/Message.h"
+#include "../shared/Communication.h"
 
 class Manager
 {
-    int new_socket;
+    ServerConnection miners;
 public:
-    Manager()
+    Manager(const char* ip, const char* port)
     {
-        int server_fd, valread; 
-        struct sockaddr_in address; 
-        int opt = 1; 
-        int addrlen = sizeof(address); 
-        
-        // Creating socket file descriptor 
-        if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
-        { 
-            perror("socket failed"); 
-            exit(EXIT_FAILURE); 
-        } 
-        
-        address.sin_family = AF_INET; 
-        address.sin_addr.s_addr = INADDR_ANY; 
-        address.sin_port = htons( 6001 ); 
-        
-        if (bind(server_fd, (struct sockaddr *)&address,  
-                                    sizeof(address))<0) 
-        { 
-            perror("bind failed"); 
-            exit(EXIT_FAILURE); 
-        } 
-        if (listen(server_fd, 3) < 0) 
-        { 
-            perror("listen"); 
-            exit(EXIT_FAILURE); 
-        } 
-        if ((new_socket = accept(server_fd, (struct sockaddr *)&address,  
-                        (socklen_t*)&addrlen))<0) 
-        { 
-            perror("accept"); 
-            exit(EXIT_FAILURE); 
-        }
+        miners.start(ip, atoi(port));
     }
 
     void run()
     {
         while(true)
         {
-            int x = GetMessage();
+            //std::cout << "Cycle" << std::endl;
 
-            std::cout << "FakeManager running. Send new hash?" << std::endl;
-            char c;
-            std::cin >> c;
-            if(c == 'y')
+            // Check for new Connections
+            auto v = miners.accept_new_connections();
+            for(int socket : v)
             {
                 Message msg;
-                SendMessage(msg);
+                msg.id = 1;
+                msg.compose_u64(12393939334343);
+                sendMessage(socket, msg);
             }
+
+            // Check for new Messages
+            for(int s : miners.sockets)
+            {
+                std::optional<Message> msg = getMessage(s);
+                if(msg.has_value())
+                {
+                    Parser parser(msg.value());
+                    u64 proofOfWork;
+                    parser.parse_u64(proofOfWork);
+                    std::cout << "Received Proof of Work:" << proofOfWork << std::endl;
+                    return;
+                }
+            }            
+
+            //std::cout << "FakeManager running. Send new hash?" << std::endl;
+            //char c;
+            //std::cin >> c;
+            /*
+            if(c == 'y')
+            {
+                std::cout << "Sending New Hash" << std::endl;
+                Message msg;
+                msg.id = 1;
+                msg.compose_u64(100);
+
+                for(int s : miners.sockets)
+                    sendMessage(s, msg);
+            }
+            */
+
+            std::this_thread::sleep_for (std::chrono::milliseconds(1));
         }
-    }
-
-    int GetMessage()
-    {
-        return 0;
-    }
-
-    void SendMessage(Message& msg)
-    {
-        std::vector<byte> data;
-        data.resize(20);
-
-        u32 id = 1;
-        u64 size = 8; 
-        u64 newBaseHash = 100;
-        memcpy(data.data(), &id, 4);
-        memcpy(data.data() + 4, &size, 8);
-        memcpy(data.data() + 12, &newBaseHash, 8);
-
-        for(byte b : msg.data)
-            std::cout << (char)b << " ";
-        std::cout << std::endl;
-
-        send(new_socket , data.data() , data.size(), 0); 
-        printf("message sent\n"); 
     }
 };

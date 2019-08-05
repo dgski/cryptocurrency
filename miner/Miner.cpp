@@ -1,43 +1,57 @@
 #include "Miner.h"
 
-Miner::Miner()
+Miner::Miner(const char* ip, const char* port)
 {
-    struct sockaddr_in serv_addr; 
-    if ((incomingFromManager = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
+    std::cout << "Miner ip=" << ip << " port=" << port << std::endl;
+    sockaddr_in serv_addr;
+
+    incomingFromManager = socket(AF_INET, SOCK_STREAM, 0);
+    if (incomingFromManager < 0)
     { 
-        printf("\n Socket creation error \n"); 
+        std::cout << "Socket creation error" << std::endl;
         return;
     } 
    
     serv_addr.sin_family = AF_INET; 
-    serv_addr.sin_port = htons(6001); 
+    serv_addr.sin_port = htons(atoi(port)); 
        
-    // Convert IPv4 and IPv6 addresses from text to binary form 
-    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)  
+    if(inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0)  
     { 
-        printf("\nInvalid address/ Address not supported \n"); 
+        std::cout << "Invalid address/ Address not supported" << std::endl;
         return; 
     } 
    
-    if (connect(incomingFromManager, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
+    if (connect(incomingFromManager, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
     { 
-        printf("\nConnection Failed \n"); 
+        std::cout << "Connection Failed" << std::endl;
         return; 
     }
+
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 10;
+    setsockopt(incomingFromManager, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    setsockopt(incomingFromManager, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 }
 
 void Miner::run()
 {
     while(true)
     {
-        std::optional<Message> msg = getMessage();
-
-        if(0 /* NEW_HASH */)
+        std::optional<Message> msg = getMessage(incomingFromManager);
+        if(msg.has_value())
         {
-            baseHash.set(29392939343);            
-            if(currentlyMining == false)
+            Parser parser(msg.value());
+            if(msg.value().id == 1)
             {
-                startMining();
+                u64 newBaseHash;
+                parser.parse_u64(newBaseHash);
+                baseHash.set(newBaseHash);
+                std::cout << "Received New Base Hash:" << newBaseHash << std::endl;
+                if(!currentlyMining)
+                {
+                    startMining();
+                }
             }
         }
 
@@ -46,31 +60,16 @@ void Miner::run()
             u64 proofValue = proof.get();
             stopMining();
             std::cout << "Sending Proof of Work To Manager Module: " << proofValue << std::endl;
+
+            Message msg;
+            msg.id = 2;
+            msg.compose_u64(proofValue);
+            sendMessage(incomingFromManager, msg);
+            return;
         }
+
+        std::this_thread::sleep_for (std::chrono::milliseconds(1));
     }
-}
-
-std::optional<Message> Miner::getMessage()
-{
-    Message msg;
-
-    int valread = read(incomingFromManager , &msg.id, 4);
-
-    if(valread == 0)
-        return std::nullopt;
-
-    valread = read(incomingFromManager, &msg.size, 8);
-    msg.data.resize(msg.size);
-    valread = read(incomingFromManager, msg.data.data(), (size_t)msg.size);
-
-    std::cout << "Msg: id=" << msg.id << " size=" << msg.size << std::endl;
-
-    for(byte b : msg.data)
-        std::cout << (int)b << std::endl;
-
-    std::cout << "Contents: " << *(u64*)(msg.data.data()) << std::endl;
-
-    return msg;
 }
 
 bool Miner::validProof(u64 nonce, u64 hash) const

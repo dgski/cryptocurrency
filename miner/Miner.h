@@ -4,11 +4,7 @@
 #include <sstream>
 #include <optional>
 
-#include "../shared/Message.h"
-
-using i32 = std::int32_t;
-using i64 = std::int64_t;
-using u64 = std::uint64_t;
+#include "../shared/Communication.h"
 
 template<typename T>
 class AtomicChannel
@@ -42,9 +38,8 @@ class Miner
     AtomicChannel<u64> proof;
     AtomicChannel<u64> baseHash;
 public:
-    Miner();
+    Miner(const char* ip, const char* port);
     void run();
-    std::optional<Message> getMessage();
     bool validProof(u64 nonce, u64 hash) const;
     void startMining();
     void stopMining();
