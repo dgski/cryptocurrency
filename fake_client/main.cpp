@@ -8,12 +8,12 @@ int main()
     while(true)
     {
         std::cout << "Send Fake Transaction >>" << std::endl;
-        char x;
+        int x;
         std::cin >> x;
-        if(x == 'y')
+        if(0 < x)
         {
             Transaction t;
-            t.id = 19292;
+            t.id = x;
 
             MSG_CLIENT_TRANSACTIONER_NEWTRANS contents;
             Message msg;

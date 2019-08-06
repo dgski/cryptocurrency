@@ -21,9 +21,9 @@ struct Message
 
     Message& compose_u64(u64 val)
     {
-        size += sizeof(u64);
         data.resize(data.size() + sizeof(u64));
-        memcpy(data.data(), &val, sizeof(u64));
+        memcpy(data.data() + size, &val, sizeof(u64));
+        size += sizeof(u64);
 
         return *this;
     }
@@ -152,7 +152,7 @@ struct ClientConnection
 
         struct timeval tv;
         tv.tv_sec = 0;
-        tv.tv_usec = 10;
+        tv.tv_usec = 100;
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
     }

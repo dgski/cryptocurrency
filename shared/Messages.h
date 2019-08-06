@@ -62,7 +62,6 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ
     {        
         u64 size;
         parser.parse_u64(size);
-
         for(u64 i{ 0 }; i < size; ++i)
         {
             auto& t = transactions.emplace_back();
@@ -74,7 +73,6 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ
     {
         msg.id = id;
         msg.compose_u64(transactions.size());
-
         for(Transaction& t : transactions)
         {
             t.compose(msg);

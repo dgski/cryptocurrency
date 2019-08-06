@@ -5,20 +5,20 @@ std::optional<Message> getMessage(int socket)
     Message msg;
     
     int bytesRead = read(socket, &msg.id, 4);
-    if(bytesRead == 0)
+    if(bytesRead < 0)
     {
         return std::nullopt;
     }
 
     bytesRead = read(socket, &msg.size, 8);
-    if(bytesRead == -1)
+    if(bytesRead < 0)
     {
         return std::nullopt;
     }
     
     msg.data.resize(msg.size);
     bytesRead = read(socket, msg.data.data(), msg.size);
-    if(bytesRead == -1)
+    if(bytesRead < 0)
     {
         return std::nullopt;
     }
