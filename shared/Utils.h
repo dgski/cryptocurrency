@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <map>
+#include <vector>
 
 #include "Types.h"
 
@@ -30,3 +31,6 @@ public:
 };
 
 std::map<str, str> getInitParameters(const char* fileName);
+
+template<typename T>
+size_t hashVector(std::vector<T> data);

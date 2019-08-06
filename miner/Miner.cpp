@@ -19,18 +19,7 @@ void Miner::run()
         std::optional<Message> msg = getMessage(connToManager.getSocket());
         if(msg.has_value())
         {
-            Parser parser(msg.value());
-            if(msg.value().id == 1)
-            {
-                u64 newBaseHash;
-                parser.parse_u64(newBaseHash);
-                baseHash.set(newBaseHash);
-                std::cout << "Received New Base Hash:" << newBaseHash << std::endl;
-                if(!currentlyMining)
-                {
-                    startMining();
-                }
-            }
+            processManagerMessage(msg.value());
         }
 
         if(proof.ready())
@@ -39,9 +28,11 @@ void Miner::run()
             stopMining();
             std::cout << "Sending Proof of Work To Manager Module: " << proofValue << std::endl;
 
+            MSG_MINER_MANAGER_PROOFOFWORK contents;
+            contents.proofOfWork = proofValue;
+
             Message msg;
-            msg.id = 2;
-            msg.compose_u64(proofValue);
+            contents.compose(msg);
             sendMessage(connToManager.getSocket(), msg);
             return;
         }
@@ -91,5 +82,26 @@ void Miner::mine()
         }
 
         nonce += 1;
+    }
+}
+
+void Miner::processManagerMessage(Message& msg)
+{
+    switch(msg.id)
+    {
+    case MSG_MANAGER_MINER_NEWBASEHASH::id:
+    {
+        MSG_MANAGER_MINER_NEWBASEHASH contents;
+        Parser parser(msg);
+        contents.parse(parser);
+        baseHash.set(contents.newBaseHash);
+
+        std::cout << "Received New Base Hash:" << contents.newBaseHash << std::endl;
+        if(!currentlyMining)
+        {
+            startMining();
+        }
+        return;
+    }
     }
 }

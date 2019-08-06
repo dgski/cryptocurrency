@@ -7,6 +7,8 @@
 #include "../shared/Types.h"
 #include "../shared/Utils.h"
 #include "../shared/Communication.h"
+#include "../shared/Transaction.h"
+#include "../shared/Messages.h"
 
 class Module
 {

@@ -2,9 +2,12 @@
 
 class Manager : Module
 {
-    AtomicChannel<u64> currentBaseHash;
+    std::vector<Transaction> postedTransactions;
+    u64 currentBaseHash;
+
     ServerConnection connFromMiners;
     ServerConnection connFromTransactioner;
+    
 public:
     Manager(const char* iniFileName)
     {
@@ -22,7 +25,7 @@ public:
             atoi(params["connFromTransactionerPORT"].c_str()) 
         );
         
-        currentBaseHash.set(12393939334343); // FAKE
+        currentBaseHash = 12393939334343; // FAKE
     }
 
     void run()
@@ -35,12 +38,14 @@ public:
 
             // Connect to New Miners
             std::vector<int> newConnections = connFromMiners.acceptNewConnections();
-            u64 newHashToSend = currentBaseHash.get();
+            u64 newHashToSend = currentBaseHash;
             for(int socket : newConnections)
             {
+                MSG_MANAGER_MINER_NEWBASEHASH contents;
+                contents.newBaseHash = newHashToSend;
+
                 Message msg;
-                msg.id = 1;
-                msg.compose_u64(newHashToSend);
+                contents.compose(msg);
                 sendMessage(socket, msg);
             }
             
@@ -50,19 +55,18 @@ public:
                 std::optional<Message> msg = getMessage(s);
                 if(msg.has_value())
                 {
-                    Parser parser(msg.value());
-                    u64 proofOfWork;
-                    parser.parse_u64(proofOfWork);
-                    std::cout << "Received Proof of Work:" << proofOfWork << std::endl;
-                    return;
+                    processMinerMessage(msg.value());
                 }
             }
 
             // Ask Transactioner for new transactions
             for(int socket : connFromTransactioner.sockets)
             {
+                MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
+                contents.numOfTransactionsRequested = 5;
+                
                 Message msg;
-                msg.id = 3;
+                contents.compose(msg);
                 sendMessage(socket, msg);
             }
 
@@ -72,11 +76,76 @@ public:
                 std::optional<Message> msg = getMessage(socket);
                 if(msg.has_value())
                 {
-                    std::cout << "Received new Transactions from Transactioner" << std::endl;
+                    processTransactionerMessage(msg.value());
                 }
             }
             
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
+    }
+
+    void processMinerMessage(Message& msg)
+    {
+        switch(msg.id)
+        {
+        case MSG_MINER_MANAGER_PROOFOFWORK::id:
+        {
+            MSG_MINER_MANAGER_PROOFOFWORK contents;
+            Parser parser(msg);
+            contents.parse(parser);
+
+            std::cout << "Received Proof of Work:" << contents.proofOfWork << std::endl;
+            return;
+        }
+        }
+    }
+
+    void processTransactionerMessage(Message& msg)
+    {
+        switch(msg.id)
+        {
+        case MSG_A_MANAGER_TRANSACTIONER_TRANSREQ::id:
+        {
+            MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents;
+            Parser parser(msg);
+            contents.parse(parser);
+
+            std::cout << contents.transactions.size() << " Transactions Received!" << std::endl;
+
+            for(Transaction& t : contents.transactions)
+            {
+                postedTransactions.push_back(t);
+            }
+
+            u64 newBaseHash = hashVector(postedTransactions);
+
+            if(newBaseHash != currentBaseHash)
+            {
+                currentBaseHash = newBaseHash;
+                for(int socket : connFromMiners.sockets)
+                {
+                    MSG_MANAGER_MINER_NEWBASEHASH contents;
+                    contents.newBaseHash = currentBaseHash;
+
+                    Message msg;
+                    contents.compose(msg);
+                    sendMessage(socket, msg);
+                }
+            }
+            return;
+        }
+        }
+    }
+
+    template<typename T>
+    static size_t hashVector(std::vector<T> data)
+    {
+        size_t res = 3203303030;
+        for(auto d : data)
+        {
+            res ^= std::hash<T>{}(d);
+        }
+
+        return res;
     }
 };

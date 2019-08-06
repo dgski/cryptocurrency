@@ -14,4 +14,5 @@ public:
     void startMining();
     void stopMining();
     void mine();
+    void processManagerMessage(Message& msg);
 };
