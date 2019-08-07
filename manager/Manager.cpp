@@ -4,16 +4,16 @@ Manager::Manager(const char* iniFileName)
 {
     std::cout << "Manager Module Starting" << std::endl;
 
-    std::map<str,str> params = getInitParameters(iniFileName);
+    const std::map<str,str> params = getInitParameters(iniFileName);
 
     connFromMiners.init(
-        params["connFromMinersIP"].c_str(),
-        atoi(params["connFromMinersPORT"].c_str())
+        params.at("connFromMinersIP").c_str(),
+        atoi(params.at("connFromMinersPORT").c_str())
     );
 
     connFromTransactioner.init(
-        params["connFromTransactionerIP"].c_str(),
-        atoi(params["connFromTransactionerPORT"].c_str()) 
+        params.at("connFromTransactionerIP").c_str(),
+        atoi(params.at("connFromTransactionerPORT").c_str()) 
     );
     
     currentBaseHash = 12393939334343; // FAKE
@@ -26,7 +26,7 @@ void Manager::run()
     while(true)
     {
         // Connect to New Miners
-        std::vector<int> newConnections = connFromMiners.acceptNewConnections();
+        const std::vector<int> newConnections = connFromMiners.acceptNewConnections();
         u64 newHashToSend = currentBaseHash;
         for(int socket : newConnections)
         {
@@ -38,7 +38,7 @@ void Manager::run()
             sendMessage(socket, msg);
         }
         
-        // Check if any miner has send the proof of work
+        // Check if any miner has sent the proof of work
         for(int s : connFromMiners.sockets)
         {
             std::optional<Message> msg = getMessage(s);
@@ -99,20 +99,12 @@ void Manager::processTransactionerMessage(Message& msg)
         Parser parser(msg);
         contents.parse(parser);
         
-        std::cout << contents.transactions.size() << " Transactions Received!" << std::endl;
-
         for(Transaction& t : contents.transactions)
         {
             postedTransactions.push_back(t);
         }
 
-        std::cout << "postedTransactions size:" << postedTransactions.size() << std::endl;
-
         u64 newBaseHash = hashVector(postedTransactions);
-        
-        std::cout << "currentBaseHash:" << currentBaseHash << std::endl;
-        std::cout << "newBaseHash:" << newBaseHash << std::endl;
-
         if(newBaseHash != currentBaseHash)
         {
 
@@ -135,11 +127,11 @@ void Manager::processTransactionerMessage(Message& msg)
 template<typename T>
 size_t Manager::hashVector(std::vector<T> data)
 {
-    size_t res = 3203303030;
+    size_t seed = data.size();
     for(auto d : data)
     {
-        res ^= 3203302344 ^ std::hash<T>{}(d);
+        seed ^= 3203302344 ^ std::hash<T>{}(d);
     }
 
-    return res;
+    return seed;
 }
