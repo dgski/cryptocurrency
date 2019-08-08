@@ -27,16 +27,7 @@ void Manager::run()
     {
         // Connect to New Miners
         const std::vector<int> newConnections = connFromMiners.acceptNewConnections();
-        u64 newHashToSend = currentBaseHash;
-        for(int socket : newConnections)
-        {
-            MSG_MANAGER_MINER_NEWBASEHASH contents;
-            contents.newBaseHash = newHashToSend;
-
-            Message msg;
-            contents.compose(msg);
-            sendMessage(socket, msg);
-        }
+        sendNewBaseHashToMiners(newConnections);
         
         // Check if any miner has sent the proof of work
         for(int s : connFromMiners.sockets)
@@ -47,16 +38,11 @@ void Manager::run()
                 processMinerMessage(msg.value());
             }
         }
-
-        // Ask Transactioner for new transactions
-        for(int socket : connFromTransactioner.sockets)
+        
+        // Ask for new transactions
+        if(postedTransactions.size() < 100)
         {
-            MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
-            contents.numOfTransactionsRequested = 5;
-            
-            Message msg;
-            contents.compose(msg);
-            sendMessage(socket, msg);
+            askTransactionerForNewTransactions();
         }
 
         // Transactioner sent new transactions
@@ -109,15 +95,7 @@ void Manager::processTransactionerMessage(Message& msg)
         {
 
             currentBaseHash = newBaseHash;
-            for(int socket : connFromMiners.sockets)
-            {
-                MSG_MANAGER_MINER_NEWBASEHASH contents;
-                contents.newBaseHash = currentBaseHash;
-
-                Message reply;
-                contents.compose(reply);
-                sendMessage(socket, reply);
-            }
+            sendNewBaseHashToMiners(connFromMiners.sockets);
         }
         return;
     }
@@ -134,4 +112,30 @@ size_t Manager::hashVector(std::vector<T> data)
     }
 
     return seed;
+}
+
+void Manager::sendNewBaseHashToMiners(const std::vector<int>& sockets) const
+{
+    for(int socket : sockets)
+    {
+        MSG_MANAGER_MINER_NEWBASEHASH contents;
+        contents.newBaseHash = currentBaseHash;
+
+        Message reply;
+        contents.compose(reply);
+        sendMessage(socket, reply);
+    }
+}
+
+void Manager::askTransactionerForNewTransactions() const
+{
+    for(int socket : connFromTransactioner.sockets)
+    {
+        MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
+        contents.numOfTransactionsRequested = 5;
+        
+        Message msg;
+        contents.compose(msg);
+        sendMessage(socket, msg);
+    }
 }

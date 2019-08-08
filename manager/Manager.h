@@ -15,4 +15,6 @@ public:
     void processTransactionerMessage(Message& msg);
     template<typename T>
     static size_t hashVector(std::vector<T> data);
+    void sendNewBaseHashToMiners(const std::vector<int>& sockets) const;
+    void askTransactionerForNewTransactions() const;
 };
