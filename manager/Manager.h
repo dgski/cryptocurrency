@@ -1,6 +1,6 @@
 #include "../shared/Module.h"
 
-class Manager : Module
+class Manager : public Module
 {
     std::vector<Transaction> postedTransactions;
     u64 currentBaseHash;
@@ -14,5 +14,5 @@ public:
     void processMinerMessage(Message& msg);
     void processTransactionerMessage(Message& msg);
     void sendNewBaseHashToMiners(const std::vector<int>& sockets) const;
-    void askTransactionerForNewTransactions() const;
+    void askTransactionerForNewTransactions();
 };

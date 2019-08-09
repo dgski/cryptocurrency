@@ -16,6 +16,7 @@
 struct Message
 {
     u32 id = 0;
+    u32 reqId = 0;
     u64 size = 0;
     std::vector<byte> data;
 
@@ -30,7 +31,7 @@ struct Message
 
     size_t getFullSize() const
     {
-        return sizeof(u32) + sizeof(u64) + data.size();
+        return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
     }
 };
 
@@ -109,12 +110,14 @@ struct ServerConnection
         {
             struct timeval tv;
             tv.tv_sec = 0;
-            tv.tv_usec = 10;
+            tv.tv_usec = 100;
             setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+            setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
             sockets.push_back(new_socket);
             establishedThisRound.push_back(new_socket);
             std::cout << "+ New Incoming Connection" << std::endl;
         }
+        
 
         return establishedThisRound;
     }

@@ -21,20 +21,22 @@ void Transactioner::run()
 {
     while(true)
     {
+        std::cout << "Cycle" << std::endl;
         // Get Connections From Clients
-        connFromClients.acceptNewConnections();
-        for(int socket : connFromClients.sockets)
-        {
-            std::optional<Message> msg = getMessage(socket);
-            if(msg.has_value())
-            {
-                processClientMessage(msg.value());
-            }
-        }
+        //connFromClients.acceptNewConnections();
+        //for(int socket : connFromClients.sockets)
+        //{
+        //    std::optional<Message> msg = getMessage(socket);
+        //    if(msg.has_value())
+        //    {
+        //        processClientMessage(msg.value());
+        //    }
+        //}
 
         std::optional<Message> msg = getMessage(connToManager.getSocket());
         if(msg.has_value())
         {
+            std::cout << "Got message from manager" << msg.value().id << std::endl;
             processManagerMessage(msg.value());
         }
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -73,6 +75,7 @@ void Transactioner::processManagerMessage(Message& msg)
         std::cout << "Sending: " << responseContents.transactions.size() << "transactions to Manager" << std::endl;
 
         Message reply;
+        reply.reqId = msg.reqId;
         responseContents.compose(reply);
         
         u64 numOfTransConfirmation;

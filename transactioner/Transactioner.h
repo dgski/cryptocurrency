@@ -2,7 +2,7 @@
 
 #include "../shared/Module.h"
 
-class Transactioner : Module
+class Transactioner : public Module
 {
     ClientConnection connToManager;
     ServerConnection connFromClients;

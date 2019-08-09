@@ -1,6 +1,6 @@
 #include "../shared/Module.h"
 
-class Miner : Module
+class Miner : public Module
 {
     ClientConnection connToManager;
 

@@ -84,6 +84,13 @@ void Manager::processMinerMessage(Message& msg)
 
 void Manager::processTransactionerMessage(Message& msg)
 {
+    auto it = callBacks.find(msg.reqId);
+    if(it != callBacks.end())
+    {
+        it->second(msg);
+        return;
+    }
+
     switch(msg.id)
     {
     case MSG_A_MANAGER_TRANSACTIONER_TRANSREQ::id:
@@ -119,14 +126,25 @@ void Manager::sendNewBaseHashToMiners(const std::vector<int>& sockets) const
     }
 }
 
-void Manager::askTransactionerForNewTransactions() const
+void Manager::askTransactionerForNewTransactions()
 {
+    std::cout << "Asking for new Transactions" << std::endl;
     for(int socket : connFromTransactioner.sockets)
     {
         MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
         contents.numOfTransactionsRequested = 5;
         
+        u32 reqId = getNextReqId();
+
+        callBacks[reqId] = [](Message& msg)
+        {
+            MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
+            std::cout << "Received " << contents.transactions.size() << "Transactions" << std::endl;
+        };
+
+
         Message msg;
+        msg.reqId = reqId;
         contents.compose(msg);
         sendMessage(socket, msg);
     }
