@@ -7,6 +7,14 @@ struct MSG_MANAGER_MINER_NEWBASEHASH
     constexpr static u32 id = 0;
     u64 newBaseHash;
 
+    MSG_MANAGER_MINER_NEWBASEHASH(){}
+
+    MSG_MANAGER_MINER_NEWBASEHASH(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
     void parse(Parser& parser)
     {
         parser.parse_u64(newBaseHash);
@@ -23,6 +31,14 @@ struct MSG_MINER_MANAGER_PROOFOFWORK
 {
     constexpr static u32 id = 1;
     u64 proofOfWork;
+
+    MSG_MINER_MANAGER_PROOFOFWORK(){}
+
+    MSG_MINER_MANAGER_PROOFOFWORK(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
 
     void parse(Parser& parser)
     {
@@ -41,6 +57,14 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ
     constexpr static u32 id = 2;
     u64 numOfTransactionsRequested;
 
+    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(){}
+
+    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
     void parse(Parser& parser)
     {
         parser.parse_u64(numOfTransactionsRequested);
@@ -57,6 +81,14 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ
 {
     constexpr static u32 id = 3;
     std::vector<Transaction> transactions;
+
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(){}
+
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
 
     void parse(Parser& parser)
     {        
@@ -84,6 +116,14 @@ struct MSG_CLIENT_TRANSACTIONER_NEWTRANS
 {
     constexpr static u32 id = 4;
     Transaction transaction;
+
+    MSG_CLIENT_TRANSACTIONER_NEWTRANS(){}
+
+    MSG_CLIENT_TRANSACTIONER_NEWTRANS(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
 
     void parse(Parser& parser)
     {

@@ -65,11 +65,18 @@ void Manager::processMinerMessage(Message& msg)
     {
     case MSG_MINER_MANAGER_PROOFOFWORK::id:
     {
-        MSG_MINER_MANAGER_PROOFOFWORK contents;
-        Parser parser(msg);
-        contents.parse(parser);
+        MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
 
-        std::cout << "Received Proof of Work:" << contents.proofOfWork << std::endl;
+        if(validProof(contents.proofOfWork, currentBaseHash))
+        {
+            // Propagate to Network
+            // sendMessage(connToNetworked.getSocket(), msg);
+            
+            // Save to Blockchainer module
+            // sendMessage(connToBlockchainer.getSocket(), msg);
+            std::cout << "Received Proof of Work:" << contents.proofOfWork << std::endl;
+        }
+
         return;
     }
     }
@@ -81,9 +88,7 @@ void Manager::processTransactionerMessage(Message& msg)
     {
     case MSG_A_MANAGER_TRANSACTIONER_TRANSREQ::id:
     {
-        MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents;
-        Parser parser(msg);
-        contents.parse(parser);
+        MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
         
         for(Transaction& t : contents.transactions)
         {
@@ -93,25 +98,12 @@ void Manager::processTransactionerMessage(Message& msg)
         u64 newBaseHash = hashVector(postedTransactions);
         if(newBaseHash != currentBaseHash)
         {
-
             currentBaseHash = newBaseHash;
             sendNewBaseHashToMiners(connFromMiners.sockets);
         }
         return;
     }
     }
-}
-
-template<typename T>
-size_t Manager::hashVector(std::vector<T> data)
-{
-    size_t seed = data.size();
-    for(auto d : data)
-    {
-        seed ^= 3203302344 ^ std::hash<T>{}(d);
-    }
-
-    return seed;
 }
 
 void Manager::sendNewBaseHashToMiners(const std::vector<int>& sockets) const

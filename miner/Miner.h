@@ -10,7 +10,6 @@ class Miner : Module
 public:
     Miner(const char* iniFileName);
     void run();
-    bool validProof(u64 nonce, u64 hash) const;
     void startMining();
     void stopMining();
     void mine();

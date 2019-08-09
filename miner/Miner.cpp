@@ -41,13 +41,6 @@ void Miner::run()
     }
 }
 
-bool Miner::validProof(u64 nonce, u64 hash) const
-{
-    const size_t res = std::hash<u64>{}(nonce) ^ std::hash<u64>{}(hash);
-    const size_t mask = (size_t)(0b11111111111111111111111111111111);
-    return ((mask ^ res) & mask) == mask;
-}
-
 void Miner::startMining()
 {
     currentlyMining = true;
@@ -91,9 +84,7 @@ void Miner::processManagerMessage(Message& msg)
     {
     case MSG_MANAGER_MINER_NEWBASEHASH::id:
     {
-        MSG_MANAGER_MINER_NEWBASEHASH contents;
-        Parser parser(msg);
-        contents.parse(parser);
+        MSG_MANAGER_MINER_NEWBASEHASH contents{ msg };
         baseHash.set(contents.newBaseHash);
 
         std::cout << "Received New Base Hash:" << contents.newBaseHash << std::endl;

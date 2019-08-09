@@ -80,7 +80,7 @@ struct ServerConnection
         }
     }
 
-std::vector<int> acceptNewConnections(bool wait =  false)
+    std::vector<int> acceptNewConnections(bool wait = false)
     {
         std::vector<int> establishedThisRound;
 

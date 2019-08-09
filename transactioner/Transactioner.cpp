@@ -47,9 +47,7 @@ void Transactioner::processManagerMessage(Message& msg)
     {
     case MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ::id:
     {
-        MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
-        Parser parser(msg);
-        contents.parse(parser);
+        MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
         std::cout << "Manager requesting " << contents.numOfTransactionsRequested << "transactions" << std::endl;
 
         MSG_A_MANAGER_TRANSACTIONER_TRANSREQ responseContents;
@@ -95,11 +93,9 @@ void Transactioner::processClientMessage(Message& msg)
     {
     case MSG_CLIENT_TRANSACTIONER_NEWTRANS::id:
     {
-        MSG_CLIENT_TRANSACTIONER_NEWTRANS contents;
-        Parser parser(msg);
-        contents.parse(parser);
+        MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
 
-        // Verify Transaction
+        // First: Verify Transaction
         waitingTransactions.push_back(contents.transaction);
         std::cout << "Added 1 New Transaction to Waiting List with id: " << contents.transaction.id << std::endl;
         std::cout << "Total transaction: " << waitingTransactions.size() << std::endl;
