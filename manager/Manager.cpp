@@ -30,14 +30,14 @@ void Manager::run()
         sendNewBaseHashToMiners(newConnections);
         
         // Check if any miner has sent the proof of work
-        for(int s : connFromMiners.sockets)
-        {
-            std::optional<Message> msg = getMessage(s);
-            if(msg.has_value())
-            {
-                processMinerMessage(msg.value());
-            }
-        }
+        //for(int s : connFromMiners.sockets)
+        //{
+        //    std::optional<Message> msg = getFinalMessage(s);
+        //    if(msg.has_value())
+        //    {
+        //        processMinerMessage(msg.value());
+        //    }
+        //}
         
         // Ask for new transactions
         if(postedTransactions.size() < 100)
@@ -45,15 +45,7 @@ void Manager::run()
             askTransactionerForNewTransactions();
         }
 
-        // Transactioner sent new transactions
-        for(int socket : connFromTransactioner.sockets)
-        {
-            std::optional<Message> msg = getMessage(socket);
-            if(msg.has_value())
-            {
-                processTransactionerMessage(msg.value());
-            }
-        }
+        std::optional<Message> msg = connFromTransactioner.getMessage();
         
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
@@ -82,37 +74,6 @@ void Manager::processMinerMessage(Message& msg)
     }
 }
 
-void Manager::processTransactionerMessage(Message& msg)
-{
-    auto it = callBacks.find(msg.reqId);
-    if(it != callBacks.end())
-    {
-        it->second(msg);
-        return;
-    }
-
-    switch(msg.id)
-    {
-    case MSG_A_MANAGER_TRANSACTIONER_TRANSREQ::id:
-    {
-        MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
-        
-        for(Transaction& t : contents.transactions)
-        {
-            postedTransactions.push_back(t);
-        }
-
-        u64 newBaseHash = hashVector(postedTransactions);
-        if(newBaseHash != currentBaseHash)
-        {
-            currentBaseHash = newBaseHash;
-            sendNewBaseHashToMiners(connFromMiners.sockets);
-        }
-        return;
-    }
-    }
-}
-
 void Manager::sendNewBaseHashToMiners(const std::vector<int>& sockets) const
 {
     for(int socket : sockets)
@@ -122,30 +83,45 @@ void Manager::sendNewBaseHashToMiners(const std::vector<int>& sockets) const
 
         Message reply;
         contents.compose(reply);
-        sendMessage(socket, reply);
+        sendFinalMessage(socket, reply);
     }
 }
 
 void Manager::askTransactionerForNewTransactions()
 {
     std::cout << "Asking for new Transactions" << std::endl;
-    for(int socket : connFromTransactioner.sockets)
+    
+    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
+    contents.numOfTransactionsRequested = 5;
+
+    Message msg;
+    contents.compose(msg);
+
+    connFromTransactioner.sendMessage(msg, [this](Message& msg)
     {
-        MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
-        contents.numOfTransactionsRequested = 5;
-        
-        u32 reqId = getNextReqId();
+        std::cout << "Callback!" << std::endl;
+        processTransactionRequestReply(msg);
+    });
+}
 
-        callBacks[reqId] = [](Message& msg)
-        {
-            MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
-            std::cout << "Received " << contents.transactions.size() << "Transactions" << std::endl;
-        };
+void Manager::processTransactionRequestReply(Message& msg)
+{
+    std::cout << "inside vallback!" << std::endl;
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
 
-
-        Message msg;
-        msg.reqId = reqId;
-        contents.compose(msg);
-        sendMessage(socket, msg);
+    std::cout << "Got " << contents.transactions.size() << " Transactions" << std::endl;
+    
+    for(Transaction& t : contents.transactions)
+    {
+        postedTransactions.push_back(t);
     }
+
+    u64 newBaseHash = hashVector(postedTransactions);
+    if(newBaseHash != currentBaseHash)
+    {
+        currentBaseHash = newBaseHash;
+        std::cout << "baseHash has changed!" << std::endl;
+        //sendNewBaseHashToMiners(connFromMiners.sockets);
+    }
+    return;
 }

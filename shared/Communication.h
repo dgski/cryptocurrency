@@ -10,6 +10,8 @@
 #include <unistd.h> 
 #include <string.h> 
 #include <vector>
+#include <functional>
+#include <unordered_map>
 
 #include "Types.h"
 
@@ -51,10 +53,31 @@ struct Parser
     }
 };
 
-std::optional<Message> getMessage(int socket);
-void sendMessage(int socket, Message& msg);
+std::optional<Message> getFinalMessage(int socket);
+void sendFinalMessage(int socket, Message& msg);
 
-struct ServerConnection
+using Callback = std::function<void(Message&)>;
+
+struct Connection
+{
+    u32 nextReqId = 1;
+    std::unordered_map<u32,Callback> callbacks;
+
+    u32 getNextReqId()
+    {
+        u32 next = nextReqId;
+        nextReqId++;
+
+        if(nextReqId == 0)
+            nextReqId++;
+
+        return next;
+    }
+    virtual void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) = 0;
+    virtual std::optional<Message> getMessage() = 0;
+};
+
+struct ServerConnection : Connection
 {
     int serverFileDescriptor;
     std::vector<int> sockets;
@@ -121,9 +144,57 @@ struct ServerConnection
 
         return establishedThisRound;
     }
+
+    void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override
+    {
+        for(int socket : sockets)
+        {
+            if(msg.reqId == 0)
+            {
+                msg.reqId = getNextReqId();
+            }
+            if(callback.has_value())
+            {
+                callbacks[msg.reqId] = callback.value();
+            }
+
+            std::cout << "Sending with reqId of : " << msg.reqId << std::endl;
+            sendFinalMessage(socket, msg);
+        }
+    }
+
+    std::optional<Message> getMessage()
+    {
+        for(int socket : sockets)
+        {
+            std::optional<Message> potentialMsg = getFinalMessage(socket);
+            if(potentialMsg.has_value())
+            {
+                Message& msg = potentialMsg.value();
+
+                auto it = callbacks.find(msg.reqId);
+                if(it != callbacks.end())
+                {
+                    it->second(msg);
+                    callbacks.erase(it);
+                    return std::nullopt; // Callback will process Message
+                }
+                else
+                {
+                    return potentialMsg; // Module will process Message
+                }
+            }
+            else
+            {
+                return std::nullopt;
+            }
+        }
+
+        return std::nullopt;
+    }
 };
 
-struct ClientConnection
+struct ClientConnection : Connection
 {
     int socketFileDescriptor;
 
@@ -163,5 +234,43 @@ struct ClientConnection
     int getSocket() const
     {
         return socketFileDescriptor;
+    }
+
+    void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override
+    {
+        if(msg.reqId == 0)
+        {
+            msg.reqId = getNextReqId();
+        }
+        if(callback.has_value())
+        {
+            callbacks[msg.reqId] = callback.value();
+        }
+
+        sendFinalMessage(socketFileDescriptor, msg);
+    }
+
+    std::optional<Message> getMessage() override
+    {
+        std::optional<Message> potentialMsg = getFinalMessage(socketFileDescriptor);
+        if(potentialMsg.has_value())
+        {
+            Message& msg = potentialMsg.value();
+            auto it = callbacks.find(msg.reqId);
+            if(it != callbacks.end())
+            {
+                it->second(msg);
+                callbacks.erase(it);
+                return std::nullopt; // Callback will process Message
+            }
+            else
+            {
+                return potentialMsg; // Module will process Message
+            }
+        }
+        else
+        {
+            return std::nullopt;
+        }
     }
 };

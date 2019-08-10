@@ -19,7 +19,7 @@ int main()
             Message msg;
             contents.compose(msg);
 
-            sendMessage(connToTransactioner.getSocket(), msg);
+            connToTransactioner.sendMessage(msg);
         }
     }
 }

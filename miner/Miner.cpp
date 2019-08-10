@@ -16,7 +16,7 @@ void Miner::run()
 {
     while(true)
     {
-        std::optional<Message> msg = getMessage(connToManager.getSocket());
+        std::optional<Message> msg = connToManager.getMessage();
         if(msg.has_value())
         {
             processManagerMessage(msg.value());
@@ -33,7 +33,7 @@ void Miner::run()
 
             Message msg;
             contents.compose(msg);
-            sendMessage(connToManager.getSocket(), msg);
+            connToManager.sendMessage(msg);
             return;
         }
 

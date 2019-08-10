@@ -33,7 +33,7 @@ void Transactioner::run()
         //    }
         //}
 
-        std::optional<Message> msg = getMessage(connToManager.getSocket());
+        std::optional<Message> msg = connToManager.getMessage();
         if(msg.has_value())
         {
             std::cout << "Got message from manager" << msg.value().id << std::endl;
@@ -72,19 +72,14 @@ void Transactioner::processManagerMessage(Message& msg)
             );
         }
         
-        std::cout << "Sending: " << responseContents.transactions.size() << "transactions to Manager" << std::endl;
-
         Message reply;
         reply.reqId = msg.reqId;
         responseContents.compose(reply);
-        
-        u64 numOfTransConfirmation;
-        Parser parser2(reply);
-        parser2.parse_u64(numOfTransConfirmation);
 
-        std::cout << "confirmed size: " << numOfTransConfirmation << std::endl;
+        std::cout << "Sending: " << responseContents.transactions.size() << "transactions to Manager with reqId" << reply.reqId << std::endl;
 
-        sendMessage(connToManager.getSocket(), reply);
+
+        connToManager.sendMessage(msg);
         return;
     }
     }
