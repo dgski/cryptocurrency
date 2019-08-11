@@ -17,6 +17,8 @@
 
 struct Message
 {
+    int socket;
+
     u32 id = 0;
     u32 reqId = 0;
     u64 size = 0;
@@ -161,6 +163,17 @@ struct ServerConnection : Connection
             std::cout << "Sending with reqId of : " << msg.reqId << std::endl;
             sendFinalMessage(socket, msg);
         }
+    }
+
+    void sendMessage(int socket, Message& msg)
+    {
+        if(msg.reqId == 0)
+        {
+            msg.reqId = getNextReqId();
+        }
+
+        std::cout << "Sending with reqId of : " << msg.reqId << std::endl;
+        sendFinalMessage(socket, msg);
     }
 
     std::optional<Message> getMessage()

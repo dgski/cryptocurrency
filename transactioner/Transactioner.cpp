@@ -21,30 +21,27 @@ void Transactioner::run()
 {
     while(true)
     {
-        std::cout << "Cycle" << std::endl;
-        // Get Connections From Clients
-        //connFromClients.acceptNewConnections();
-        //for(int socket : connFromClients.sockets)
-        //{
-        //    std::optional<Message> msg = getMessage(socket);
-        //    if(msg.has_value())
-        //    {
-        //        processClientMessage(msg.value());
-        //    }
-        //}
-
-        std::optional<Message> msg = connToManager.getMessage();
-        if(msg.has_value())
+        connFromClients.acceptNewConnections();
+        std::optional<Message> msgFromClient = connFromClients.getMessage();
+        if(msgFromClient.has_value())
         {
-            std::cout << "Got message from manager" << msg.value().id << std::endl;
-            processManagerMessage(msg.value());
+            processClientMessage(msgFromClient.value());
         }
+
+        std::optional<Message> msgFromManager = connToManager.getMessage();
+        if(msgFromManager.has_value())
+        {
+            processManagerMessage(msgFromManager.value());
+        }
+        
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
 
 void Transactioner::processManagerMessage(Message& msg)
 {
+    std::cout << "processManagerMessage" << std::endl;
+    
     switch(msg.id)
     {
     case MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ::id:
@@ -77,8 +74,6 @@ void Transactioner::processManagerMessage(Message& msg)
         responseContents.compose(reply);
 
         std::cout << "Sending: " << responseContents.transactions.size() << "transactions to Manager with reqId" << reply.reqId << std::endl;
-
-
         connToManager.sendMessage(msg);
         return;
     }
@@ -87,13 +82,15 @@ void Transactioner::processManagerMessage(Message& msg)
 
 void Transactioner::processClientMessage(Message& msg)
 {
+    std::cout << "processClientMessage" << std::endl;
+    
     switch(msg.id)
     {
     case MSG_CLIENT_TRANSACTIONER_NEWTRANS::id:
     {
         MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
 
-        // First: Verify Transaction
+        // First: Verify Transaction - TODO
         waitingTransactions.push_back(contents.transaction);
         std::cout << "Added 1 New Transaction to Waiting List with id: " << contents.transaction.id << std::endl;
         std::cout << "Total transaction: " << waitingTransactions.size() << std::endl;

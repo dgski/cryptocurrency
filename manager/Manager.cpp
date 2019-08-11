@@ -25,27 +25,21 @@ void Manager::run()
 
     while(true)
     {
-        // Connect to New Miners
         const std::vector<int> newConnections = connFromMiners.acceptNewConnections();
         sendNewBaseHashToMiners(newConnections);
         
-        // Check if any miner has sent the proof of work
-        //for(int s : connFromMiners.sockets)
-        //{
-        //    std::optional<Message> msg = getFinalMessage(s);
-        //    if(msg.has_value())
-        //    {
-        //        processMinerMessage(msg.value());
-        //    }
-        //}
-        
-        // Ask for new transactions
+        std::optional<Message> msgFromMiner = connFromMiners.getMessage();
+        if(msgFromMiner.has_value())
+        {
+            processMinerMessage(msgFromMiner.value());
+        }
+
         if(postedTransactions.size() < 100)
         {
             askTransactionerForNewTransactions();
         }
 
-        std::optional<Message> msg = connFromTransactioner.getMessage();
+        connFromTransactioner.getMessage();
         
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
@@ -89,7 +83,7 @@ void Manager::sendNewBaseHashToMiners(const std::vector<int>& sockets) const
 
 void Manager::askTransactionerForNewTransactions()
 {
-    std::cout << "Asking for new Transactions" << std::endl;
+    std::cout << "askTransactionerForNewTransactions" << std::endl;
     
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
     contents.numOfTransactionsRequested = 5;
@@ -99,14 +93,14 @@ void Manager::askTransactionerForNewTransactions()
 
     connFromTransactioner.sendMessage(msg, [this](Message& msg)
     {
-        std::cout << "Callback!" << std::endl;
         processTransactionRequestReply(msg);
     });
 }
 
 void Manager::processTransactionRequestReply(Message& msg)
 {
-    std::cout << "inside vallback!" << std::endl;
+    std::cout << "processTransactionRequestReply" << std::endl;
+
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
 
     std::cout << "Got " << contents.transactions.size() << " Transactions" << std::endl;
@@ -121,7 +115,7 @@ void Manager::processTransactionRequestReply(Message& msg)
     {
         currentBaseHash = newBaseHash;
         std::cout << "baseHash has changed!" << std::endl;
-        //sendNewBaseHashToMiners(connFromMiners.sockets);
+        sendNewBaseHashToMiners(connFromMiners.sockets);
     }
     return;
 }

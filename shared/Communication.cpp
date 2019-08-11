@@ -28,6 +28,8 @@ std::optional<Message> getFinalMessage(int socket)
     {
         return std::nullopt;
     }
+
+    msg.socket = socket;
     
     return msg;
 }

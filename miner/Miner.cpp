@@ -57,10 +57,11 @@ void Miner::mine()
 {
     u64 nonce = 0;
     u64 currentBaseHash = baseHash.get();
+    bool res;
 
     while(true)
     {
-        const bool res = validProof(nonce, currentBaseHash);
+        res = validProof(nonce, currentBaseHash);
         
         if(baseHash.ready())
         {
