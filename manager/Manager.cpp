@@ -86,7 +86,7 @@ void Manager::askTransactionerForNewTransactions()
     std::cout << "askTransactionerForNewTransactions" << std::endl;
     
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
-    contents.numOfTransactionsRequested = 5;
+    contents.numOfTransactionsRequested = 100 - postedTransactions.size();
 
     Message msg;
     contents.compose(msg);

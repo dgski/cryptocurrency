@@ -5,16 +5,30 @@
 
 struct Transaction
 {
-    u64 id;
+    u64 time;
+    str sender;
+    str recipiant;
+    u64 amount;
+    str signature;
 
     void parse(Parser& parser)
     {
-        parser.parse_u64(id);
+        parser
+            .parse_u64(time)
+            .parse_str(sender)
+            .parse_str(recipiant)
+            .parse_u64(amount)
+            .parse_str(signature);
     }
 
     void compose(Message& msg)
     {
-        msg.compose_u64(id);
+        msg
+            .compose_u64(time)
+            .compose_str(sender)
+            .compose_str(recipiant)
+            .compose_u64(amount)
+            .compose_str(signature);
     }
 };
 
@@ -27,7 +41,12 @@ namespace std
         typedef std::size_t result_type;
         result_type operator()(argument_type const& transaction) const noexcept
         {
-            return std::hash<int>{}(transaction.id);
+            return
+                std::hash<u64>{}(transaction.time) ^
+                std::hash<str>{}(transaction.sender) ^
+                std::hash<str>{}(transaction.recipiant) ^
+                std::hash<u64>{}(transaction.amount) ^
+                std::hash<str>{}(transaction.signature);
         }
     };
 }

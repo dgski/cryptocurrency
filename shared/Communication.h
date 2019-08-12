@@ -33,6 +33,15 @@ struct Message
         return *this;
     }
 
+    Message& compose_str(str& val)
+    {
+        data.resize(data.size() + val.size() + 1);
+        memcpy(data.data() + size, val.c_str(), val.size() + 1);
+        size += val.size() + 1;
+
+        return *this;
+    }
+
     size_t getFullSize() const
     {
         return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
@@ -51,6 +60,14 @@ struct Parser
     {
         val = *(u64*)ptr;
         ptr += sizeof(u64);
+        return *this;
+    }
+
+    Parser& parse_str(str& val)
+    {
+        val.assign((const char*)ptr);
+        ptr += val.size() + 1;
+        
         return *this;
     }
 };
@@ -213,6 +230,8 @@ struct ClientConnection : Connection
 
     void init(const char* ip, int port)
     {
+        std::cout << "Initializing ClientConnection ip=" << ip << " port=" << port << std::endl;
+
         sockaddr_in serv_addr;
 
         socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);

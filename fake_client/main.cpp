@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "../shared/Module.h"
 
 int main()
@@ -13,9 +15,15 @@ int main()
         if(0 < x)
         {
             Transaction t;
-            t.id = x;
+            t.time = std::chrono::system_clock::now().time_since_epoch().count();
+            t.sender = "Bob";
+            t.recipiant = "Michael";
+            t.amount = 10;
+            t.signature = "SIGNATURE";
 
             MSG_CLIENT_TRANSACTIONER_NEWTRANS contents;
+            contents.transaction = t;
+            
             Message msg;
             contents.compose(msg);
 

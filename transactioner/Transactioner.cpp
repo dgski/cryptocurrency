@@ -22,6 +22,7 @@ void Transactioner::run()
     while(true)
     {
         connFromClients.acceptNewConnections();
+        
         std::optional<Message> msgFromClient = connFromClients.getMessage();
         if(msgFromClient.has_value())
         {
@@ -91,9 +92,20 @@ void Transactioner::processClientMessage(Message& msg)
         MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
 
         // First: Verify Transaction - TODO
+
+
         waitingTransactions.push_back(contents.transaction);
-        std::cout << "Added 1 New Transaction to Waiting List with id: " << contents.transaction.id << std::endl;
-        std::cout << "Total transaction: " << waitingTransactions.size() << std::endl;
+
+        std::cout << "MSG_CLIENT_TRANSACTIONER_NEWTRANS {";
+        std::cout << "timer: " << contents.transaction.time << std::endl;
+        std::cout << "sender: " << contents.transaction.sender << std::endl;
+        std::cout << "recipiant: " << contents.transaction.recipiant << std::endl;
+        std::cout << "amount: " << contents.transaction.amount << std::endl;
+        std::cout << "signature: " << contents.transaction.signature << std::endl;
+        std::cout << "}";
+
+        std::cout << "Total transactions: " << waitingTransactions.size() << std::endl;
+
         return;
     }
     }
