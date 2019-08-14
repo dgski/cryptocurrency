@@ -2,9 +2,9 @@
 
 Manager::Manager(const char* iniFileName)
 {
-    std::cout << "Manager Module Starting" << std::endl;
-
     const std::map<str,str> params = getInitParameters(iniFileName);
+
+    log("Manager module starting");
 
     connFromMiners.init(
         params.at("connFromMinersIP").c_str(),
@@ -51,11 +51,9 @@ void Manager::askTransactionerForNewTransactions()
 
 void Manager::processTransactionRequestReply(Message& msg)
 {
-    std::cout << "processTransactionRequestReply" << std::endl;
-
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
 
-    std::cout << "Got " << contents.transactions.size() << " Transactions" << std::endl;
+    log("processTransactionRequestReply recieved % transactions", contents.transactions.size());
     
     for(Transaction& t : contents.transactions)
     {
@@ -66,7 +64,7 @@ void Manager::processTransactionRequestReply(Message& msg)
     if(newBaseHash != currentBaseHash)
     {
         currentBaseHash = newBaseHash;
-        std::cout << "baseHash has changed!" << std::endl;
+        log("baseHash has changed, Propagating.");
 
         MSG_MANAGER_MINER_NEWBASEHASH contents;
         contents.newBaseHash = currentBaseHash;
@@ -84,6 +82,7 @@ void Manager::processMessage(Message& msg)
     case MSG_MINER_MANAGER_PROOFOFWORK::id:
     {
         MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
+        log("MSG_MINER_MANAGER_PROOFOFWORK proof=%", contents.proofOfWork);
 
         if(validProof(contents.proofOfWork, currentBaseHash))
         {
@@ -92,7 +91,7 @@ void Manager::processMessage(Message& msg)
             
             // Save to Blockchainer module
             // sendMessage(connToBlockchainer.getSocket(), msg);
-            std::cout << "Received Proof of Work:" << contents.proofOfWork << std::endl;
+            log("Proof is valid");
             exit(0);
         }
 
@@ -100,6 +99,8 @@ void Manager::processMessage(Message& msg)
     }
     case MSG_MINER_MANAGER_HASHREQUEST::id:
     {
+        log("MSG_MINER_MANAGER_HASHREQUEST");
+
         MSG_MANAGER_MINER_NEWBASEHASH contents;
         contents.newBaseHash = currentBaseHash;
         Message hashMsg;

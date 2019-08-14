@@ -44,6 +44,6 @@ std::map<str, str> getInitParameters(const char* fileName)
 bool validProof(u64 nonce, u64 hash)
 {
     const size_t res = std::hash<u64>{}(nonce) ^ std::hash<u64>{}(hash);
-    const size_t mask = (size_t)(0b1111111111111111111111111111111111111111);
+    const size_t mask = (size_t)(0b1111111111111111111111111111);
     return ((mask ^ res) & mask) == mask;
 }

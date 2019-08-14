@@ -3,33 +3,40 @@
 std::optional<Message> getFinalMessage(int socket)
 {
     Message msg;
+    msg.socket = socket;
     
     int bytesRead = read(socket, &msg.id, 4);
-    if(bytesRead < 0)
+    if(bytesRead <= 0)
     {
         return std::nullopt;
     }
 
     bytesRead = read(socket, &msg.reqId, 4);
-    if(bytesRead < 0)
+    if(bytesRead <= 0)
     {
         return std::nullopt;
     }
 
     bytesRead = read(socket, &msg.size, 8);
-    if(bytesRead < 0)
+    if(bytesRead <= 0)
     {
         return std::nullopt;
+    }
+    if(msg.size == 0)
+    {
+        return msg;
     }
 
     msg.data.resize(msg.size);
     bytesRead = read(socket, msg.data.data(), msg.size);
+    if(bytesRead == 0)
+    {
+        return msg;
+    }
     if(bytesRead < 0)
     {
         return std::nullopt;
     }
-
-    msg.socket = socket;
     
     return msg;
 }

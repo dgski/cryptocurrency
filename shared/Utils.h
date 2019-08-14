@@ -52,3 +52,25 @@ size_t hashVector(std::vector<T> data)
 
     return seed;
 }
+
+inline void log(const char* fmt)
+{
+    std::cout << fmt << std::endl;
+}
+
+template<typename Arg, typename... Args>
+inline void log(const char* fmt, Arg arg, Args... args)
+{
+    while(*fmt)
+    {
+        if(*fmt == '%')
+        {
+            std::cout << arg;
+            log(fmt + 1, args...);
+            return;
+        }
+
+        std::cout << *fmt;
+        fmt += 1;
+    }
+}

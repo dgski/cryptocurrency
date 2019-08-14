@@ -2,7 +2,7 @@
 
 Miner::Miner(const char* iniFileName)
 {
-    std::cout << "Miner Module Starting" << std::endl;
+    log("Miner Module Starting");
 
     std::map<str,str> params = getInitParameters(iniFileName);
 
@@ -13,6 +13,7 @@ Miner::Miner(const char* iniFileName)
 
     registerClientConnection(&connToManager);
 
+    log("Requesting hash");
     MSG_MINER_MANAGER_HASHREQUEST hashRequest;
     Message msg;
     hashRequest.compose(msg);
@@ -24,7 +25,7 @@ Miner::Miner(const char* iniFileName)
         {
             u64 proofValue = proof.get();
             stopMining();
-            std::cout << "Sending Proof of Work To Manager Module: " << proofValue << std::endl;
+            log("Found valid proof=%, Sending to Manager", proofValue);
 
             MSG_MINER_MANAGER_PROOFOFWORK contents;
             contents.proofOfWork = proofValue;
@@ -84,7 +85,7 @@ void Miner::processMessage(Message& msg)
         MSG_MANAGER_MINER_NEWBASEHASH contents{ msg };
         baseHash.set(contents.newBaseHash);
 
-        std::cout << "Received New Base Hash:" << contents.newBaseHash << std::endl;
+        log("Recieved new baseHash");
         if(!currentlyMining)
         {
             startMining();

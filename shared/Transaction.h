@@ -3,12 +3,9 @@
 #include "Types.h"
 #include "Communication.h"
 
-extern "C"
-{
-    #include <openssl/rsa.h>
-    #include <openssl/pem.h>
-    #include <openssl/err.h>
-}
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
 
 struct Transaction
 {
@@ -57,15 +54,18 @@ namespace std
         }
     };
 }
-/*
-bool isTransactionValid(Transaction& transaction)
+
+inline bool isTransactionValid(Transaction& transaction)
 {
+    log("isTransactionValid");
+
     str transHash = std::to_string(std::hash<Transaction>{}(transaction));
 
     char our_key[1000] = {0};
     char* new_key_point = our_key;
     const char* send_pointer = transaction.sender.c_str();
 
+    /*
     for(int i = 0; i < 5; i++)
     {
         memcpy(new_key_point,send_pointer,64);
@@ -75,10 +75,10 @@ bool isTransactionValid(Transaction& transaction)
     }
 
     memcpy(new_key_point,send_pointer,41);
-
+    */
+   
     char final_key[427] = {0};
     sprintf(final_key,"-----BEGIN RSA PUBLIC KEY-----\n%s\n-----END RSA PUBLIC KEY-----\n", our_key);
-
     char* pub_key = final_key;
 
     BIO *bio = BIO_new_mem_buf((void*)pub_key, strlen(pub_key));
@@ -96,15 +96,10 @@ bool isTransactionValid(Transaction& transaction)
     BIO_free_all(bio);
     RSA_free(rsa_pub);
 
-    if(transactionIsValid)
-    {
-        return true;
-    }
-    
-    return false;
+    return transactionIsValid != 0;
 }
 
-void signTransaction(Transaction& transaction, RSA* keypair)
+inline void signTransaction(Transaction& transaction, RSA* keypair)
 {
     str transHash = std::to_string(std::hash<Transaction>{}(transaction));
 
@@ -130,4 +125,3 @@ void signTransaction(Transaction& transaction, RSA* keypair)
         transaction.signature += buf;
     }
 }
-*/

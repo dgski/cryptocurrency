@@ -14,6 +14,7 @@
 #include <unordered_map>
 
 #include "Types.h"
+#include "Utils.h"
 
 struct Message
 {
@@ -154,7 +155,7 @@ struct ServerConnection : Connection
             setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
             sockets.push_back(new_socket);
-            std::cout << "+ New Incoming Connection" << std::endl;
+            log("ServerConnection: accepted new connection socket=%", new_socket);
         }
     }
 
@@ -171,7 +172,6 @@ struct ServerConnection : Connection
                 callbacks[msg.reqId] = callback.value();
             }
 
-            std::cout << "Sending with reqId of : " << msg.reqId << std::endl;
             sendFinalMessage(socket, msg);
         }
     }
@@ -183,7 +183,6 @@ struct ServerConnection : Connection
             msg.reqId = getNextReqId();
         }
 
-        std::cout << "Sending with reqId of : " << msg.reqId << std::endl;
         sendFinalMessage(socket, msg);
     }
 
@@ -224,14 +223,13 @@ struct ClientConnection : Connection
 
     void init(const char* ip, int port)
     {
-        std::cout << "Initializing ClientConnection ip=" << ip << " port=" << port << std::endl;
-
+        log("Initializing ClientConnection ip=%, port=%", ip, port);
         sockaddr_in serv_addr;
 
         socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
         if (socketFileDescriptor < 0)
         { 
-            std::cout << "Socket creation error" << std::endl;
+            log("Socket creation error");
             return;
         } 
     
@@ -240,13 +238,13 @@ struct ClientConnection : Connection
         
         if(inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0)  
         { 
-            std::cout << "Invalid address/ Address not supported" << std::endl;
+            log("Invalid address/ Address not supported");
             return; 
         } 
     
         if (connect(socketFileDescriptor, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
         { 
-            std::cout << "Connection Failed" << std::endl;
+            log("Connection Failed");
             return; 
         }
 
@@ -255,6 +253,8 @@ struct ClientConnection : Connection
         tv.tv_usec = 100;
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+
+        log("Connection established");
     }
 
     int getSocket() const

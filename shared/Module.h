@@ -19,7 +19,7 @@ class Module
     std::vector<std::function<void()>> repeatedTasks;
 public:
     virtual void processMessage(Message& msg) = 0;
-    void run2()
+    void run()
     {
         while(true)
         {

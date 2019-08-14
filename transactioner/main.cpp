@@ -4,11 +4,11 @@ int main(int argc, const char* argv[])
 {
     if(argc != 2)
     {
-        std::cout << "Improper Usage" << std::endl;
+        log("Improper Usage");
         return -1;
     }
 
     Transactioner transactioner{argv[1]};
-    transactioner.run2();
+    transactioner.run();
     return 0;
 }
