@@ -13,6 +13,11 @@ Miner::Miner(const char* iniFileName)
 
     registerClientConnection(&connToManager);
 
+    MSG_MINER_MANAGER_HASHREQUEST hashRequest;
+    Message msg;
+    hashRequest.compose(msg);
+    connToManager.sendMessage(msg);
+
     registerRepeatedTask([this]()
     {
         if(proof.ready())
@@ -30,20 +35,6 @@ Miner::Miner(const char* iniFileName)
             return;
         }
     });
-}
-
-void Miner::run()
-{
-    while(true)
-    {
-        std::optional<Message> msg = connToManager.getMessage();
-        if(msg.has_value())
-        {
-            processManagerMessage(msg.value());
-        }
-
-        std::this_thread::sleep_for (std::chrono::milliseconds(1));
-    }
 }
 
 void Miner::startMining()
@@ -84,7 +75,7 @@ void Miner::mine()
     }
 }
 
-void Miner::processManagerMessage(Message& msg)
+void Miner::processMessage(Message& msg)
 {
     switch(msg.id)
     {
@@ -101,9 +92,4 @@ void Miner::processManagerMessage(Message& msg)
         return;
     }
     }
-}
-
-void Miner::processMessage(Message& msg)
-{
-    std::cout << "Processing Msg!" << std::endl;
 }

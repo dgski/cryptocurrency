@@ -18,15 +18,11 @@ class Module
     std::vector<ClientConnection*> clientConnections;
     std::vector<std::function<void()>> repeatedTasks;
 public:
-    virtual void run() = 0;
-
     virtual void processMessage(Message& msg) = 0;
     void run2()
     {
         while(true)
         {
-            std::cout << "Cycle" << std::endl;
-            
             for(ServerConnection* s : serverConnnections)
             {
                 s->acceptNewConnections();
@@ -50,8 +46,6 @@ public:
             {
                 task();
             }
-
-            std::this_thread::sleep_for (std::chrono::seconds(1));
         }
     }
 

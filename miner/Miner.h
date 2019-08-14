@@ -9,10 +9,8 @@ class Miner : public Module
     AtomicChannel<u64> baseHash;
 public:
     Miner(const char* iniFileName);
-    void run();
     void startMining();
     void stopMining();
     void mine();
-    void processManagerMessage(Message& msg);
     void processMessage(Message& msg);
 };

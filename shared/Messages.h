@@ -104,7 +104,7 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ
     void compose(Message& msg)
     {
         msg.id = id;
-        msg.compose_u64(transactions.size());
+        msg.compose_u64((u64)transactions.size());
         for(Transaction& t : transactions)
         {
             t.compose(msg);
@@ -134,5 +134,27 @@ struct MSG_CLIENT_TRANSACTIONER_NEWTRANS
     {
         msg.id = id;
         transaction.compose(msg);
+    }
+};
+
+struct MSG_MINER_MANAGER_HASHREQUEST
+{
+    constexpr static u32 id = 5;
+
+    MSG_MINER_MANAGER_HASHREQUEST(){}
+
+    MSG_MINER_MANAGER_HASHREQUEST(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {
+    }
+
+    void compose(Message& msg)
+    {
+        msg.id = id;
     }
 };
