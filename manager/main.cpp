@@ -9,6 +9,7 @@ int main(int argc, const char* argv[])
     }
 
     Manager manager{ argv[1] };
-    manager.run();
+    //manager.run();
+    manager.run2();
     return 0;
 }

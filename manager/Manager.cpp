@@ -16,6 +16,17 @@ Manager::Manager(const char* iniFileName)
         atoi(params.at("connFromTransactionerPORT").c_str()) 
     );
     
+    registerServerConnection(&connFromMiners);
+    registerServerConnection(&connFromTransactioner);
+
+    registerRepeatedTask([this]()
+    {
+        if(postedTransactions.size() < 100)
+        {
+            askTransactionerForNewTransactions();
+        }
+    });
+
     currentBaseHash = 12393939334343; // FAKE
 }
 
@@ -25,8 +36,7 @@ void Manager::run()
 
     while(true)
     {
-        const std::vector<int> newConnections = connFromMiners.acceptNewConnections();
-        sendNewBaseHashToMiners(newConnections);
+        connFromMiners.acceptNewConnections();
         
         std::optional<Message> msgFromMiner = connFromMiners.getMessage();
         if(msgFromMiner.has_value())
@@ -70,6 +80,8 @@ void Manager::processMinerMessage(Message& msg)
 
 void Manager::sendNewBaseHashToMiners(const std::vector<int>& sockets) const
 {
+    //std::cout << "askTransactionerForNewTransactions" << std::endl;
+
     for(int socket : sockets)
     {
         MSG_MANAGER_MINER_NEWBASEHASH contents;
@@ -118,4 +130,27 @@ void Manager::processTransactionRequestReply(Message& msg)
         sendNewBaseHashToMiners(connFromMiners.sockets);
     }
     return;
+}
+
+void Manager::processMessage(Message& msg)
+{
+    switch(msg.id)
+    {
+    case MSG_MINER_MANAGER_PROOFOFWORK::id:
+    {
+        MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
+
+        if(validProof(contents.proofOfWork, currentBaseHash))
+        {
+            // Propagate to Network
+            // sendMessage(connToNetworked.getSocket(), msg);
+            
+            // Save to Blockchainer module
+            // sendMessage(connToBlockchainer.getSocket(), msg);
+            std::cout << "Received Proof of Work:" << contents.proofOfWork << std::endl;
+        }
+
+        return;
+    }
+    }
 }

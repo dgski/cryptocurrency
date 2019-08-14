@@ -14,4 +14,5 @@ public:
     void run();
     void processManagerMessage(Message& msg);
     void processClientMessage(Message& msg);
+    void processMessage(Message& msg);
 };

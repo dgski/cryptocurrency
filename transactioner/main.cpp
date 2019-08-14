@@ -9,6 +9,6 @@ int main(int argc, const char* argv[])
     }
 
     Transactioner transactioner{argv[1]};
-    transactioner.run();
+    transactioner.run2();
     return 0;
 }

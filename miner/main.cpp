@@ -9,6 +9,6 @@ int main(int argc, const char* argv[])
     }
 
     Miner miner{argv[1]};
-    miner.run();
+    miner.run2();
     return 0;
 }

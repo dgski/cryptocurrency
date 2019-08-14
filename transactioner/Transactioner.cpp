@@ -15,6 +15,9 @@ Transactioner::Transactioner(const char* iniFileName)
         params["connFromClientsIP"].c_str(),
         atoi(params["connFromClientsPORT"].c_str())
     );
+
+    registerClientConnection(&connToManager);
+    registerServerConnection(&connFromClients);
 }
 
 void Transactioner::run()
@@ -91,12 +94,7 @@ void Transactioner::processClientMessage(Message& msg)
     {
         MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
 
-        // First: Verify Transaction - TODO
-
-
-        waitingTransactions.push_back(contents.transaction);
-
-        std::cout << "MSG_CLIENT_TRANSACTIONER_NEWTRANS {";
+        std::cout << "MSG_CLIENT_TRANSACTIONER_NEWTRANS {" << std::endl;
         std::cout << "timer: " << contents.transaction.time << std::endl;
         std::cout << "sender: " << contents.transaction.sender << std::endl;
         std::cout << "recipiant: " << contents.transaction.recipiant << std::endl;
@@ -104,8 +102,83 @@ void Transactioner::processClientMessage(Message& msg)
         std::cout << "signature: " << contents.transaction.signature << std::endl;
         std::cout << "}";
 
-        std::cout << "Total transactions: " << waitingTransactions.size() << std::endl;
+        // First: Verify Transaction - TODO
+        //if(!isTransactionValid(contents.transaction))
+        //{
+        //    std::cout << "Transaction Signature Invalid" << std::endl;
+        //    return;
+        //}
 
+        std::cout << "Adding Transaction" << std::endl;
+        waitingTransactions.push_back(contents.transaction);
+
+        std::cout << "Total transactions: " << waitingTransactions.size() << std::endl;
+        return;
+    }
+    }
+}
+
+void Transactioner::processMessage(Message& msg)
+{
+    std::cout << "Processing Msg!" << std::endl;
+    switch(msg.id)
+    {
+    case MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ::id:
+    {
+        MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
+        std::cout << "Manager requesting " << contents.numOfTransactionsRequested << "transactions" << std::endl;
+
+        MSG_A_MANAGER_TRANSACTIONER_TRANSREQ responseContents;
+        if(waitingTransactions.size() <= contents.numOfTransactionsRequested)
+        {
+            responseContents.transactions = std::move(waitingTransactions);
+            waitingTransactions.clear();
+        }
+        else
+        {
+            std::move(
+                end(waitingTransactions) - contents.numOfTransactionsRequested,
+                end(waitingTransactions),
+                std::back_inserter(responseContents.transactions)
+            );
+
+            waitingTransactions.erase(
+                end(waitingTransactions) - contents.numOfTransactionsRequested,
+                end(waitingTransactions)
+            );
+        }
+        
+        Message reply;
+        reply.reqId = msg.reqId;
+        responseContents.compose(reply);
+
+        std::cout << "Sending: " << responseContents.transactions.size() << "transactions to Manager with reqId" << reply.reqId << std::endl;
+        connToManager.sendMessage(msg);
+        return;
+    }
+    case MSG_CLIENT_TRANSACTIONER_NEWTRANS::id:
+    {
+        MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
+
+        std::cout << "MSG_CLIENT_TRANSACTIONER_NEWTRANS {" << std::endl;
+        std::cout << "timer: " << contents.transaction.time << std::endl;
+        std::cout << "sender: " << contents.transaction.sender << std::endl;
+        std::cout << "recipiant: " << contents.transaction.recipiant << std::endl;
+        std::cout << "amount: " << contents.transaction.amount << std::endl;
+        std::cout << "signature: " << contents.transaction.signature << std::endl;
+        std::cout << "}";
+
+        // First: Verify Transaction - TODO
+        //if(!isTransactionValid(contents.transaction))
+        //{
+        //    std::cout << "Transaction Signature Invalid" << std::endl;
+        //    return;
+        //}
+
+        std::cout << "Adding Transaction" << std::endl;
+        waitingTransactions.push_back(contents.transaction);
+
+        std::cout << "Total transactions: " << waitingTransactions.size() << std::endl;
         return;
     }
     }

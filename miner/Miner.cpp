@@ -10,18 +10,11 @@ Miner::Miner(const char* iniFileName)
         params["connToManagerIP"].c_str(),
         atoi(params["connToManagerPORT"].c_str())
     );
-}
 
-void Miner::run()
-{
-    while(true)
+    registerClientConnection(&connToManager);
+
+    registerRepeatedTask([this]()
     {
-        std::optional<Message> msg = connToManager.getMessage();
-        if(msg.has_value())
-        {
-            processManagerMessage(msg.value());
-        }
-
         if(proof.ready())
         {
             u64 proofValue = proof.get();
@@ -35,6 +28,18 @@ void Miner::run()
             contents.compose(msg);
             connToManager.sendMessage(msg);
             return;
+        }
+    });
+}
+
+void Miner::run()
+{
+    while(true)
+    {
+        std::optional<Message> msg = connToManager.getMessage();
+        if(msg.has_value())
+        {
+            processManagerMessage(msg.value());
         }
 
         std::this_thread::sleep_for (std::chrono::milliseconds(1));
@@ -96,4 +101,9 @@ void Miner::processManagerMessage(Message& msg)
         return;
     }
     }
+}
+
+void Miner::processMessage(Message& msg)
+{
+    std::cout << "Processing Msg!" << std::endl;
 }

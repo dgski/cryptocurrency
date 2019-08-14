@@ -3,6 +3,13 @@
 #include "Types.h"
 #include "Communication.h"
 
+extern "C"
+{
+    #include <openssl/rsa.h>
+    #include <openssl/pem.h>
+    #include <openssl/err.h>
+}
+
 struct Transaction
 {
     u64 time;
@@ -50,3 +57,77 @@ namespace std
         }
     };
 }
+/*
+bool isTransactionValid(Transaction& transaction)
+{
+    str transHash = std::to_string(std::hash<Transaction>{}(transaction));
+
+    char our_key[1000] = {0};
+    char* new_key_point = our_key;
+    const char* send_pointer = transaction.sender.c_str();
+
+    for(int i = 0; i < 5; i++)
+    {
+        memcpy(new_key_point,send_pointer,64);
+        new_key_point = new_key_point + 64;
+        send_pointer = send_pointer + 64;
+        *new_key_point++ = '\n';
+    }
+
+    memcpy(new_key_point,send_pointer,41);
+
+    char final_key[427] = {0};
+    sprintf(final_key,"-----BEGIN RSA PUBLIC KEY-----\n%s\n-----END RSA PUBLIC KEY-----\n", our_key);
+
+    char* pub_key = final_key;
+
+    BIO *bio = BIO_new_mem_buf((void*)pub_key, strlen(pub_key));
+    RSA *rsa_pub = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+
+    int transactionIsValid = RSA_verify(
+        NID_sha256,
+        (const unsigned char*) transHash.c_str(),
+        transHash.size(),
+        (const unsigned char*) transaction.signature.c_str(),
+        transaction.signature.size(),
+        rsa_pub
+    );
+
+    BIO_free_all(bio);
+    RSA_free(rsa_pub);
+
+    if(transactionIsValid)
+    {
+        return true;
+    }
+    
+    return false;
+}
+
+void signTransaction(Transaction& transaction, RSA* keypair)
+{
+    str transHash = std::to_string(std::hash<Transaction>{}(transaction));
+
+    unsigned char sig[RSA_size(keypair)];
+    unsigned int sig_len = 0;
+    int res = RSA_sign(
+        NID_sha256,
+        (const unsigned char*) transHash.c_str(),
+        transHash.size(),
+        sig,
+        &sig_len,
+        keypair
+    );
+    if(res != 1)
+    {
+        return;
+    }
+
+    for(int i = 0; i < 256; i++)
+    {
+        char buf[3] = {0};
+        sprintf(buf,"%02x", sig[i]);
+        transaction.signature += buf;
+    }
+}
+*/

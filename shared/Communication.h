@@ -123,10 +123,8 @@ struct ServerConnection : Connection
         }
     }
 
-    std::vector<int> acceptNewConnections(bool wait = false)
+    void acceptNewConnections(bool wait = false)
     {
-        std::vector<int> establishedThisRound;
-
         int new_socket;
         int addrlen = sizeof(address);
 
@@ -144,7 +142,7 @@ struct ServerConnection : Connection
             retval = select(serverFileDescriptor+1, &read_fd_set, NULL, NULL, &timeout);
             if(retval <= 0)
             {
-                return {};
+                return;
             }
         }
 
@@ -156,12 +154,8 @@ struct ServerConnection : Connection
             setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
             sockets.push_back(new_socket);
-            establishedThisRound.push_back(new_socket);
             std::cout << "+ New Incoming Connection" << std::endl;
         }
-        
-
-        return establishedThisRound;
     }
 
     void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override

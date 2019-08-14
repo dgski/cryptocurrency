@@ -4,6 +4,10 @@
 #include <map>
 #include <vector>
 
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+
 #include "Types.h"
 
 template<typename T>
