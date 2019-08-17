@@ -1,0 +1,16 @@
+@startuml
+component Manager
+component Networker
+component Transactioner
+component Miners
+component Clients
+component Blockchainer
+
+Clients -- Transactioner
+Transactioner -- Manager
+Manager -- Networker
+Blockchainer -- Manager
+Blockchainer -- Networker
+
+Miners -- Manager
+@enduml
