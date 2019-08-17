@@ -7,11 +7,10 @@ class Manager : public Module
 
     ServerConnection connFromMiners;
     ServerConnection connFromTransactioner;
-    
+    ServerConnection connFromNetworker;
 public:
     Manager(const char* iniFileName);
-    void processMinerMessage(Message& msg);
+    void processMessage(Message& msg);
     void askTransactionerForNewTransactions();
     void processTransactionRequestReply(Message& msg);
-    void processMessage(Message& msg);
 };

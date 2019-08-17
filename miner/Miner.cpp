@@ -38,6 +38,25 @@ Miner::Miner(const char* iniFileName)
     });
 }
 
+void Miner::processMessage(Message& msg)
+{
+    switch(msg.id)
+    {
+    case MSG_MANAGER_MINER_NEWBASEHASH::id:
+    {
+        MSG_MANAGER_MINER_NEWBASEHASH contents{ msg };
+        baseHash.set(contents.newBaseHash);
+
+        log("Recieved new baseHash: %", contents.newBaseHash);
+        if(!currentlyMining)
+        {
+            startMining();
+        }
+        return;
+    }
+    }
+}
+
 void Miner::startMining()
 {
     currentlyMining = true;
@@ -73,24 +92,5 @@ void Miner::mine()
         }
 
         nonce += 1;
-    }
-}
-
-void Miner::processMessage(Message& msg)
-{
-    switch(msg.id)
-    {
-    case MSG_MANAGER_MINER_NEWBASEHASH::id:
-    {
-        MSG_MANAGER_MINER_NEWBASEHASH contents{ msg };
-        baseHash.set(contents.newBaseHash);
-
-        log("Recieved new baseHash");
-        if(!currentlyMining)
-        {
-            startMining();
-        }
-        return;
-    }
     }
 }

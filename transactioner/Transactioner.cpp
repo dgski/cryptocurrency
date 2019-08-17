@@ -73,12 +73,14 @@ void Transactioner::processMessage(Message& msg)
         MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
         log("MSG_CLIENT_TRANSACTIONER_NEWTRANS");
 
+        /*
         // First: Verify Transaction
         if(!isTransactionValid(contents.transaction))
         {
             std::cout << "Transaction Signature Invalid" << std::endl;
             return;
         }
+        */
 
         log("Adding transaction");
         waitingTransactions.push_back(contents.transaction);

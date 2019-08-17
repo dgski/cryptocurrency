@@ -158,3 +158,81 @@ struct MSG_MINER_MANAGER_HASHREQUEST
         msg.id = id;
     }
 };
+
+struct MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK
+{
+    constexpr static u32 id = 6;
+
+    std::vector<Transaction> transactions;
+    u64 proofOfWork;
+
+    MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK(){}
+
+    MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {
+        u64 size;
+        parser.parse_u64(size);
+        for(u64 i{ 0 }; i < size; ++i)
+        {
+            auto& t = transactions.emplace_back();
+            t.parse(parser);
+        }
+        parser.parse_u64(proofOfWork);
+    }
+
+    void compose(Message& msg)
+    {
+        msg.id = id;
+        msg.compose_u64((u64)transactions.size());
+        for(Transaction& t : transactions)
+        {
+            t.compose(msg);
+        }
+        msg.compose_u64(proofOfWork);
+    }
+};
+
+struct MSG_NETWORKER_NETWORKER_NEWBLOCK
+{
+    constexpr static u32 id = 7;
+
+    std::vector<Transaction> transactions;
+    u64 proofOfWork;
+
+    MSG_NETWORKER_NETWORKER_NEWBLOCK(){}
+
+    MSG_NETWORKER_NETWORKER_NEWBLOCK(Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {
+        u64 size;
+        parser.parse_u64(size);
+        for(u64 i{ 0 }; i < size; ++i)
+        {
+            auto& t = transactions.emplace_back();
+            t.parse(parser);
+        }
+        parser.parse_u64(proofOfWork);
+    }
+
+    void compose(Message& msg)
+    {
+        msg.id = id;
+        msg.compose_u64((u64)transactions.size());
+        for(Transaction& t : transactions)
+        {
+            t.compose(msg);
+        }
+        msg.compose_u64(proofOfWork);
+    }
+};

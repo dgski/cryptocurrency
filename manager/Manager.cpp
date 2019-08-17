@@ -15,9 +15,15 @@ Manager::Manager(const char* iniFileName)
         params.at("connFromTransactionerIP").c_str(),
         atoi(params.at("connFromTransactionerPORT").c_str()) 
     );
+
+    connFromNetworker.init(
+        params.at("connFromNetworkerIP").c_str(),
+        atoi(params.at("connFromNetworkerPORT").c_str())
+    );
     
     registerServerConnection(&connFromMiners);
     registerServerConnection(&connFromTransactioner);
+    registerServerConnection(&connFromNetworker);
 
     registerRepeatedTask([this]()
     {
@@ -33,6 +39,48 @@ Manager::Manager(const char* iniFileName)
     });
 
     currentBaseHash = 12393939334343; // FAKE
+}
+
+void Manager::processMessage(Message& msg)
+{
+    switch(msg.id)
+    {
+    case MSG_MINER_MANAGER_PROOFOFWORK::id:
+    {
+        MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
+        log("MSG_MINER_MANAGER_PROOFOFWORK proof=%", contents.proofOfWork);
+
+        if(validProof(contents.proofOfWork, currentBaseHash))
+        {
+            log("Proof is valid, Sending to Networker for Propagation.");
+
+            MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK blockContents;
+            blockContents.transactions = postedTransactions;
+            blockContents.proofOfWork = contents.proofOfWork;
+
+            Message blockMsg;
+            blockContents.compose(blockMsg);
+            connFromNetworker.sendMessage(blockMsg);
+            
+            // Save to Blockchainer module
+            // sendMessage(connToBlockchainer.getSocket(), msg);
+
+            log("Starting work on next block.");
+        }
+
+        return;
+    }
+    case MSG_MINER_MANAGER_HASHREQUEST::id:
+    {
+        log("MSG_MINER_MANAGER_HASHREQUEST");
+
+        MSG_MANAGER_MINER_NEWBASEHASH contents;
+        contents.newBaseHash = currentBaseHash;
+        Message hashMsg;
+        contents.compose(hashMsg);
+        connFromMiners.sendMessage(msg.socket, hashMsg);
+    }
+    }
 }
 
 void Manager::askTransactionerForNewTransactions()
@@ -64,7 +112,7 @@ void Manager::processTransactionRequestReply(Message& msg)
     if(newBaseHash != currentBaseHash)
     {
         currentBaseHash = newBaseHash;
-        log("baseHash has changed, Propagating.");
+        log("baseHash has changed, Propagating to Miners.");
 
         MSG_MANAGER_MINER_NEWBASEHASH contents;
         contents.newBaseHash = currentBaseHash;
@@ -73,39 +121,4 @@ void Manager::processTransactionRequestReply(Message& msg)
         connFromMiners.sendMessage(hashMsg);
     }
     return;
-}
-
-void Manager::processMessage(Message& msg)
-{
-    switch(msg.id)
-    {
-    case MSG_MINER_MANAGER_PROOFOFWORK::id:
-    {
-        MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
-        log("MSG_MINER_MANAGER_PROOFOFWORK proof=%", contents.proofOfWork);
-
-        if(validProof(contents.proofOfWork, currentBaseHash))
-        {
-            // Propagate to Network
-            // sendMessage(connToNetworked.getSocket(), msg);
-            
-            // Save to Blockchainer module
-            // sendMessage(connToBlockchainer.getSocket(), msg);
-            log("Proof is valid");
-            exit(0);
-        }
-
-        return;
-    }
-    case MSG_MINER_MANAGER_HASHREQUEST::id:
-    {
-        log("MSG_MINER_MANAGER_HASHREQUEST");
-
-        MSG_MANAGER_MINER_NEWBASEHASH contents;
-        contents.newBaseHash = currentBaseHash;
-        Message hashMsg;
-        contents.compose(hashMsg);
-        connFromMiners.sendMessage(msg.socket, hashMsg);
-    }
-    }
 }
