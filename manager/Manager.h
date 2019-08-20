@@ -2,7 +2,9 @@
 
 class Manager : public Module
 {
-    std::vector<Transaction> postedTransactions;
+    //std::vector<Transaction> postedTransactions;
+    
+    Block currentBlock;
     u64 currentBaseHash;
 
     ServerConnection connFromMiners;
@@ -13,4 +15,5 @@ public:
     void processMessage(Message& msg);
     void askTransactionerForNewTransactions();
     void processTransactionRequestReply(Message& msg);
+    void sendBaseHashToMiners();
 };

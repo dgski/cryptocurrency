@@ -11,6 +11,7 @@
 #include "../shared/Communication.h"
 #include "../shared/Transaction.h"
 #include "../shared/Messages.h"
+#include "../shared/Blockchain.h"
 
 class Module
 {

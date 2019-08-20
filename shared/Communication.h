@@ -207,10 +207,6 @@ struct ServerConnection : Connection
                     return potentialMsg; // Module will process Message
                 }
             }
-            else
-            {
-                return std::nullopt;
-            }
         }
 
         return std::nullopt;

@@ -18,18 +18,18 @@ void Networker::processMessage(Message& msg)
 {
     switch(msg.id)
     {
-    case MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK::id:
+    case MSG_MANAGER_NETWORKER_NEWBLOCK::id:
     {
-        MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK contents{ msg };
+        MSG_MANAGER_NETWORKER_NEWBLOCK contents{ msg };
         log(
             "Received new Block from Manager: numOfTrans=%, proofOfWork=%",
-            contents.transactions.size(),
-            contents.proofOfWork
+            contents.block.transactions.size(),
+            contents.block.proofOfWork
         );
 
         MSG_NETWORKER_NETWORKER_NEWBLOCK contentsToPropagate;
-        contentsToPropagate.transactions = move(contents.transactions);
-        contentsToPropagate.proofOfWork = contents.proofOfWork;
+        contentsToPropagate.block.transactions = move(contents.block.transactions);
+        contentsToPropagate.block.proofOfWork = contents.block.proofOfWork;
         // TODO: Send to other networker modules
         return;
     }
@@ -38,8 +38,8 @@ void Networker::processMessage(Message& msg)
         MSG_NETWORKER_NETWORKER_NEWBLOCK contents{ msg };
         log(
             "Received new Block from external Node: numOfTrans=%, proofOfWork=%",
-            contents.transactions.size(),
-            contents.proofOfWork
+            contents.block.transactions.size(),
+            contents.block.proofOfWork
         );
 
         // Validate

@@ -27,14 +27,10 @@ Manager::Manager(const char* iniFileName)
 
     registerRepeatedTask([this]()
     {
-        if(postedTransactions.size() < 100)
+        if(currentBlock.transactions.size() < 200)
         {
             askTransactionerForNewTransactions();
         }
-    });
-
-    registerRepeatedTask([]()
-    {
         std::this_thread::sleep_for (std::chrono::seconds(1));
     });
 
@@ -43,6 +39,8 @@ Manager::Manager(const char* iniFileName)
 
 void Manager::processMessage(Message& msg)
 {
+    log("processMessage");
+
     switch(msg.id)
     {
     case MSG_MINER_MANAGER_PROOFOFWORK::id:
@@ -53,11 +51,10 @@ void Manager::processMessage(Message& msg)
         if(validProof(contents.proofOfWork, currentBaseHash))
         {
             log("Proof is valid, Sending to Networker for Propagation.");
+            currentBlock.proofOfWork = contents.proofOfWork;
 
-            MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK blockContents;
-            blockContents.transactions = postedTransactions;
-            blockContents.proofOfWork = contents.proofOfWork;
-
+            MSG_MANAGER_NETWORKER_NEWBLOCK blockContents;
+            blockContents.block = currentBlock;
             Message blockMsg;
             blockContents.compose(blockMsg);
             connFromNetworker.sendMessage(blockMsg);
@@ -66,6 +63,15 @@ void Manager::processMessage(Message& msg)
             // sendMessage(connToBlockchainer.getSocket(), msg);
 
             log("Starting work on next block.");
+            
+            Block newBlock;
+            newBlock.id = currentBlock.id + 1;
+            newBlock.hashOfLastBlock = currentBlock.calculateFullHash();
+            
+            currentBlock = newBlock;
+            currentBaseHash = currentBlock.calculateBaseHash();
+
+            sendBaseHashToMiners();
         }
 
         return;
@@ -86,7 +92,7 @@ void Manager::processMessage(Message& msg)
 void Manager::askTransactionerForNewTransactions()
 {    
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
-    contents.numOfTransactionsRequested = 200 - postedTransactions.size();
+    contents.numOfTransactionsRequested = 200 - currentBlock.transactions.size();
 
     Message msg;
     contents.compose(msg);
@@ -103,22 +109,23 @@ void Manager::processTransactionRequestReply(Message& msg)
 
     log("processTransactionRequestReply recieved % transactions", contents.transactions.size());
     
-    for(Transaction& t : contents.transactions)
-    {
-        postedTransactions.push_back(t);
-    }
+    std::move(begin(contents.transactions), end(contents.transactions), std::back_inserter(currentBlock.transactions));
 
-    u64 newBaseHash = hashVector(postedTransactions);
+    u64 newBaseHash = currentBlock.calculateBaseHash();
     if(newBaseHash != currentBaseHash)
     {
         currentBaseHash = newBaseHash;
         log("baseHash has changed, Propagating to Miners.");
-
-        MSG_MANAGER_MINER_NEWBASEHASH contents;
-        contents.newBaseHash = currentBaseHash;
-        Message hashMsg;
-        contents.compose(hashMsg);
-        connFromMiners.sendMessage(hashMsg);
+        sendBaseHashToMiners();
     }
     return;
+}
+
+void Manager::sendBaseHashToMiners()
+{
+    MSG_MANAGER_MINER_NEWBASEHASH contents;
+    contents.newBaseHash = currentBaseHash;
+    Message hashMsg;
+    contents.compose(hashMsg);
+    connFromMiners.sendMessage(hashMsg);
 }

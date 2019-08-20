@@ -64,7 +64,7 @@ void Transactioner::processMessage(Message& msg)
         reply.reqId = msg.reqId;
         responseContents.compose(reply);
 
-        log("Sending % transactions to Manager");
+        log("Sending % transactions to Manager", responseContents.transactions.size());
         connToManager.sendMessage(reply);
         return;
     }

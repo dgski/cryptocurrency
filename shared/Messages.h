@@ -1,6 +1,7 @@
 #include "Types.h"
 #include "Communication.h"
 #include "Transaction.h"
+#include "Blockchain.h"
 
 struct MSG_MANAGER_MINER_NEWBASEHASH
 {
@@ -159,16 +160,14 @@ struct MSG_MINER_MANAGER_HASHREQUEST
     }
 };
 
-struct MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK
+struct MSG_MANAGER_NETWORKER_NEWBLOCK
 {
     constexpr static u32 id = 6;
+    Block block;
 
-    std::vector<Transaction> transactions;
-    u64 proofOfWork;
+    MSG_MANAGER_NETWORKER_NEWBLOCK(){}
 
-    MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK(){}
-
-    MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK(Message& msg)
+    MSG_MANAGER_NETWORKER_NEWBLOCK(Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -176,25 +175,13 @@ struct MSG_MANAGER_NETWORKER_PROPAGATENEWBLOCK
 
     void parse(Parser& parser)
     {
-        u64 size;
-        parser.parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& t = transactions.emplace_back();
-            t.parse(parser);
-        }
-        parser.parse_u64(proofOfWork);
+        block.parse(parser);
     }
 
     void compose(Message& msg)
     {
         msg.id = id;
-        msg.compose_u64((u64)transactions.size());
-        for(Transaction& t : transactions)
-        {
-            t.compose(msg);
-        }
-        msg.compose_u64(proofOfWork);
+        block.compose(msg);
     }
 };
 
@@ -202,8 +189,7 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK
 {
     constexpr static u32 id = 7;
 
-    std::vector<Transaction> transactions;
-    u64 proofOfWork;
+    Block block;
 
     MSG_NETWORKER_NETWORKER_NEWBLOCK(){}
 
@@ -215,24 +201,12 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK
 
     void parse(Parser& parser)
     {
-        u64 size;
-        parser.parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& t = transactions.emplace_back();
-            t.parse(parser);
-        }
-        parser.parse_u64(proofOfWork);
+        block.parse(parser);
     }
 
     void compose(Message& msg)
     {
         msg.id = id;
-        msg.compose_u64((u64)transactions.size());
-        for(Transaction& t : transactions)
-        {
-            t.compose(msg);
-        }
-        msg.compose_u64(proofOfWork);
+        block.compose(msg);
     }
 };
