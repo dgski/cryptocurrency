@@ -4,29 +4,28 @@ Transactioner::Transactioner(const char* iniFileName)
 {
     log("Transactioner Module Starting");
 
-
-    std::map<str,str> params = getInitParameters(iniFileName);
+    const std::map<str,str> params = getInitParameters(iniFileName);
 
     connToManager.init(
-        params["connToManagerIP"].c_str(),
-        atoi(params["connToManagerPORT"].c_str())
+        params.at("connToManagerIP").c_str(),
+        atoi(params.at("connToManagerPORT").c_str())
     );
 
     connFromClients.init(
-        params["connFromClientsIP"].c_str(),
-        atoi(params["connFromClientsPORT"].c_str())
+        params.at("connFromClientsIP").c_str(),
+        atoi(params.at("connFromClientsPORT").c_str())
     );
 
     registerRepeatedTask([]()
     {
-        std::this_thread::sleep_for (std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     });
 
     registerClientConnection(&connToManager);
     registerServerConnection(&connFromClients);
 }
 
-void Transactioner::processMessage(Message& msg)
+void Transactioner::processMessage(const Message& msg)
 {
     switch(msg.id)
     {
@@ -86,6 +85,11 @@ void Transactioner::processMessage(Message& msg)
         waitingTransactions.push_back(contents.transaction);
 
         log("Total waiting transactions=%", waitingTransactions.size());
+        return;
+    }
+    default:
+    {
+        log("Unhandled MSG id=%", msg.id);
         return;
     }
     }

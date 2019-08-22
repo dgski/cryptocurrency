@@ -37,7 +37,7 @@ Manager::Manager(const char* iniFileName)
     currentBaseHash = 12393939334343; // FAKE
 }
 
-void Manager::processMessage(Message& msg)
+void Manager::processMessage(const Message& msg)
 {
     log("processMessage");
 
@@ -86,6 +86,11 @@ void Manager::processMessage(Message& msg)
         contents.compose(hashMsg);
         connFromMiners.sendMessage(msg.socket, hashMsg);
     }
+    default:
+    {
+        log("Unhandled MSG id=%", msg.id);
+        return;
+    }
     }
 }
 
@@ -107,9 +112,16 @@ void Manager::processTransactionRequestReply(Message& msg)
 {
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
 
-    log("processTransactionRequestReply recieved % transactions", contents.transactions.size());
+    log(
+        "processTransactionRequestReply recieved % transactions",
+        contents.transactions.size()
+    );
     
-    std::move(begin(contents.transactions), end(contents.transactions), std::back_inserter(currentBlock.transactions));
+    std::move(
+        begin(contents.transactions),
+        end(contents.transactions),
+        std::back_inserter(currentBlock.transactions)
+    );
 
     u64 newBaseHash = currentBlock.calculateBaseHash();
     if(newBaseHash != currentBaseHash)

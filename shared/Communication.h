@@ -51,8 +51,8 @@ struct Message
 
 struct Parser
 {
-    byte* ptr;
-    Parser(Message& msg)
+    const byte* ptr;
+    Parser(const Message& msg)
     {
         ptr = msg.data.data();
     }

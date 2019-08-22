@@ -12,7 +12,7 @@ class Manager : public Module
     ServerConnection connFromNetworker;
 public:
     Manager(const char* iniFileName);
-    void processMessage(Message& msg);
+    void processMessage(const Message& msg);
     void askTransactionerForNewTransactions();
     void processTransactionRequestReply(Message& msg);
     void sendBaseHashToMiners();

@@ -14,7 +14,7 @@ Networker::Networker(const char* iniFileName)
     registerClientConnection(&connToManager);
 }
 
-void Networker::processMessage(Message& msg)
+void Networker::processMessage(const Message& msg)
 {
     switch(msg.id)
     {
@@ -47,6 +47,11 @@ void Networker::processMessage(Message& msg)
 
         // Forward To Manager
         // TODO
+    }
+    default:
+    {
+        log("Unhandled MSG id=%", msg.id);
+        return;
     }
     }
 }

@@ -11,5 +11,5 @@ class Transactioner : public Module
 
 public:
     Transactioner(const char* iniFileName);
-    void processMessage(Message& msg);
+    void processMessage(const Message& msg);
 };

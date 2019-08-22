@@ -10,7 +10,7 @@ struct MSG_MANAGER_MINER_NEWBASEHASH
 
     MSG_MANAGER_MINER_NEWBASEHASH(){}
 
-    MSG_MANAGER_MINER_NEWBASEHASH(Message& msg)
+    MSG_MANAGER_MINER_NEWBASEHASH(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -35,7 +35,7 @@ struct MSG_MINER_MANAGER_PROOFOFWORK
 
     MSG_MINER_MANAGER_PROOFOFWORK(){}
 
-    MSG_MINER_MANAGER_PROOFOFWORK(Message& msg)
+    MSG_MINER_MANAGER_PROOFOFWORK(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -60,7 +60,7 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ
 
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(){}
 
-    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(Message& msg)
+    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -85,7 +85,7 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ
 
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(){}
 
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(Message& msg)
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -120,7 +120,7 @@ struct MSG_CLIENT_TRANSACTIONER_NEWTRANS
 
     MSG_CLIENT_TRANSACTIONER_NEWTRANS(){}
 
-    MSG_CLIENT_TRANSACTIONER_NEWTRANS(Message& msg)
+    MSG_CLIENT_TRANSACTIONER_NEWTRANS(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -144,7 +144,7 @@ struct MSG_MINER_MANAGER_HASHREQUEST
 
     MSG_MINER_MANAGER_HASHREQUEST(){}
 
-    MSG_MINER_MANAGER_HASHREQUEST(Message& msg)
+    MSG_MINER_MANAGER_HASHREQUEST(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -167,7 +167,7 @@ struct MSG_MANAGER_NETWORKER_NEWBLOCK
 
     MSG_MANAGER_NETWORKER_NEWBLOCK(){}
 
-    MSG_MANAGER_NETWORKER_NEWBLOCK(Message& msg)
+    MSG_MANAGER_NETWORKER_NEWBLOCK(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -193,7 +193,7 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK
 
     MSG_NETWORKER_NETWORKER_NEWBLOCK(){}
 
-    MSG_NETWORKER_NETWORKER_NEWBLOCK(Message& msg)
+    MSG_NETWORKER_NETWORKER_NEWBLOCK(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);

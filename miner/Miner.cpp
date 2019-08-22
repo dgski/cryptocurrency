@@ -4,11 +4,11 @@ Miner::Miner(const char* iniFileName)
 {
     log("Miner Module Starting");
 
-    std::map<str,str> params = getInitParameters(iniFileName);
+    const std::map<str,str> params = getInitParameters(iniFileName);
 
     connToManager.init(
-        params["connToManagerIP"].c_str(),
-        atoi(params["connToManagerPORT"].c_str())
+        params.at("connToManagerIP").c_str(),
+        atoi(params.at("connToManagerPORT").c_str())
     );
 
     registerClientConnection(&connToManager);
@@ -21,24 +21,11 @@ Miner::Miner(const char* iniFileName)
 
     registerRepeatedTask([this]()
     {
-        if(proof.ready())
-        {
-            u64 proofValue = proof.get();
-            stopMining();
-            log("Found valid proof=%, Sending to Manager", proofValue);
-
-            MSG_MINER_MANAGER_PROOFOFWORK contents;
-            contents.proofOfWork = proofValue;
-
-            Message msg;
-            contents.compose(msg);
-            connToManager.sendMessage(msg);
-            return;
-        }
+        checkProof();
     });
 }
 
-void Miner::processMessage(Message& msg)
+void Miner::processMessage(const Message& msg)
 {
     switch(msg.id)
     {
@@ -52,6 +39,11 @@ void Miner::processMessage(Message& msg)
         {
             startMining();
         }
+        return;
+    }
+    default:
+    {
+        log("Unhandled MSG id=%", msg.id);
         return;
     }
     }
@@ -92,5 +84,23 @@ void Miner::mine()
         }
 
         nonce += 1;
+    }
+}
+
+void Miner::checkProof()
+{
+    if(proof.ready())
+    {
+        u64 proofValue = proof.get();
+        stopMining();
+        log("Found valid proof=%, Sending to Manager", proofValue);
+
+        MSG_MINER_MANAGER_PROOFOFWORK contents;
+        contents.proofOfWork = proofValue;
+        Message msg;
+        contents.compose(msg);
+
+        connToManager.sendMessage(msg);
+        return;
     }
 }

@@ -19,7 +19,7 @@ class Module
     std::vector<ClientConnection*> clientConnections;
     std::vector<std::function<void()>> repeatedTasks;
 public:
-    virtual void processMessage(Message& msg) = 0;
+    virtual void processMessage(const Message& msg) = 0;
     void run()
     {
         while(true)
