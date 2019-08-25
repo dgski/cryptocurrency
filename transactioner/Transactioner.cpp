@@ -31,60 +31,12 @@ void Transactioner::processMessage(const Message& msg)
     {
     case MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ::id:
     {
-        MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
-        log("MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ numOfTransactionsRequested=%", contents.numOfTransactionsRequested);
-
-        MSG_A_MANAGER_TRANSACTIONER_TRANSREQ responseContents;
-
-        if(waitingTransactions.empty())
-        {
-            log("No waiting transactions");
-        }
-        else if(waitingTransactions.size() <= contents.numOfTransactionsRequested)
-        {
-            responseContents.transactions = std::move(waitingTransactions);
-            waitingTransactions.clear();
-        }
-        else
-        {            
-            std::move(
-                end(waitingTransactions) - contents.numOfTransactionsRequested,
-                end(waitingTransactions),
-                std::back_inserter(responseContents.transactions)
-            );
-
-            waitingTransactions.erase(
-                end(waitingTransactions) - contents.numOfTransactionsRequested,
-                end(waitingTransactions)
-            );
-        }
-        
-        Message reply;
-        reply.reqId = msg.reqId;
-        responseContents.compose(reply);
-
-        log("Sending % transactions to Manager", responseContents.transactions.size());
-        connToManager.sendMessage(reply);
+        processRequestForTransactions(msg);
         return;
     }
     case MSG_CLIENT_TRANSACTIONER_NEWTRANS::id:
     {
-        MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
-        log("MSG_CLIENT_TRANSACTIONER_NEWTRANS");
-
-        /*
-        // First: Verify Transaction
-        if(!isTransactionValid(contents.transaction))
-        {
-            std::cout << "Transaction Signature Invalid" << std::endl;
-            return;
-        }
-        */
-
-        log("Adding transaction");
-        waitingTransactions.push_back(contents.transaction);
-
-        log("Total waiting transactions=%", waitingTransactions.size());
+        processAddNewTransaction(msg);
         return;
     }
     default:
@@ -93,4 +45,61 @@ void Transactioner::processMessage(const Message& msg)
         return;
     }
     }
+}
+
+void Transactioner::processRequestForTransactions(const Message& msg)
+{
+    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
+    log("MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ numOfTransactionsRequested=%", contents.numOfTransactionsRequested);
+
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ responseContents;
+
+    if(waitingTransactions.empty())
+    {
+        log("No waiting transactions");
+    }
+    else if(waitingTransactions.size() <= contents.numOfTransactionsRequested)
+    {
+        responseContents.transactions = std::move(waitingTransactions);
+        waitingTransactions.clear();
+    }
+    else
+    {            
+        std::move(
+            end(waitingTransactions) - contents.numOfTransactionsRequested,
+            end(waitingTransactions),
+            std::back_inserter(responseContents.transactions)
+        );
+
+        waitingTransactions.erase(
+            end(waitingTransactions) - contents.numOfTransactionsRequested,
+            end(waitingTransactions)
+        );
+    }
+    
+    Message reply;
+    reply.reqId = msg.reqId;
+    responseContents.compose(reply);
+
+    log("Sending % transactions to Manager", responseContents.transactions.size());
+    connToManager.sendMessage(reply);
+}
+
+void Transactioner::processAddNewTransaction(const Message& msg)
+{
+    MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
+    log("MSG_CLIENT_TRANSACTIONER_NEWTRANS");
+
+    if(!isTransactionSignatureValid(contents.transaction))
+    {
+        std::cout << "Transaction Signature Invalid" << std::endl;
+        return;
+    }
+
+    // Second: Check if account has enough funds
+
+    log("Adding transaction");
+    waitingTransactions.push_back(contents.transaction);
+
+    log("Total waiting transactions=%", waitingTransactions.size());
 }

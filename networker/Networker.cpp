@@ -42,11 +42,13 @@ void Networker::processMessage(const Message& msg)
             contents.block.proofOfWork
         );
 
-        // Validate
-        // TODO
+        if(!contents.block.isValid())
+        {
+            log("Block is invalid");
+            return;
+        }
 
-        // Forward To Manager
-        // TODO
+        // Send to Manager
     }
     default:
     {

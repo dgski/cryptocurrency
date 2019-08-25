@@ -53,4 +53,23 @@ struct Block
             t.compose(msg);
         }
     }
+
+    bool isValid()
+    {
+        u64 baseHash = calculateBaseHash();
+        if(!validProof(proofOfWork, baseHash))
+        {
+            return false;
+        }
+
+        for(Transaction& t : transactions)
+        {
+            if(!isTransactionSignatureValid(t))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 };
