@@ -11,6 +11,9 @@ Manager::Manager(const char* iniFileName)
         atoi(params.at("connFromMinersPORT").c_str())
     );
 
+    auto i = strToIp(params.at("connFromMiners"));
+    log("IpInfo: address=% port=%", i.address, i.port);
+
     connFromTransactioner.init(
         params.at("connFromTransactionerIP").c_str(),
         atoi(params.at("connFromTransactionerPORT").c_str()) 

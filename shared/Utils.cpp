@@ -47,3 +47,14 @@ bool validProof(u64 nonce, u64 hash)
     const size_t mask = (size_t)(0b111111111111111111111111111111);
     return ((mask ^ res) & mask) == mask;
 }
+
+IpInfo strToIp(str s)
+{
+    IpInfo res;
+
+    auto it = std::next(std::find(s.begin(), s.end(), ':'));
+    std::copy(s.begin(), it, std::back_inserter(res.address));
+    res.port = atoi(str(it, s.end()).c_str());
+    
+    return res;
+}

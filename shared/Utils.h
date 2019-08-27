@@ -3,6 +3,8 @@
 #include <atomic>
 #include <map>
 #include <vector>
+#include <algorithm>
+#include <numeric>
 
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
@@ -74,3 +76,11 @@ inline void log(const char* fmt, Arg arg, Args... args)
         fmt += 1;
     }
 }
+
+struct IpInfo
+{
+    str address;
+    u32 port;
+};
+
+IpInfo strToIp(str s);
