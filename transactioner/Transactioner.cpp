@@ -22,21 +22,21 @@ void Transactioner::processMessage(const Message& msg)
 {
     switch(msg.id)
     {
-    case MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ::id:
-    {
-        processRequestForTransactions(msg);
-        return;
-    }
-    case MSG_CLIENT_TRANSACTIONER_NEWTRANS::id:
-    {
-        processAddNewTransaction(msg);
-        return;
-    }
-    default:
-    {
-        log("Unhandled MSG id=%", msg.id);
-        return;
-    }
+        case MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ::id:
+        {
+            processRequestForTransactions(msg);
+            return;
+        }
+        case MSG_CLIENT_TRANSACTIONER_NEWTRANS::id:
+        {
+            processAddNewTransaction(msg);
+            return;
+        }
+        default:
+        {
+            log("Unhandled MSG id=%", msg.id);
+            return;
+        }
     }
 }
 

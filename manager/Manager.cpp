@@ -33,26 +33,21 @@ void Manager::processMessage(const Message& msg)
 
     switch(msg.id)
     {
-    case MSG_MINER_MANAGER_PROOFOFWORK::id:
-    {
-        processIncomingProofOfWork(msg);
-        return;
-    }
-    case MSG_MINER_MANAGER_HASHREQUEST::id:
-    {
-        log("MSG_MINER_MANAGER_HASHREQUEST");
-
-        MSG_MANAGER_MINER_NEWBASEHASH contents;
-        contents.newBaseHash = currentBaseHash;
-        Message hashMsg;
-        contents.compose(hashMsg);
-        connFromMiners.sendMessage(msg.socket, hashMsg);
-    }
-    default:
-    {
-        log("Unhandled MSG id=%", msg.id);
-        return;
-    }
+        case MSG_MINER_MANAGER_PROOFOFWORK::id:
+        {
+            processIncomingProofOfWork(msg);
+            return;
+        }
+        case MSG_MINER_MANAGER_HASHREQUEST::id:
+        {
+            processMinerHashRequest(msg);
+            return;
+        }
+        default:
+        {
+            log("Unhandled MSG id=%", msg.id);
+            return;
+        }
     }
 }
 
@@ -137,4 +132,15 @@ void Manager::processIncomingProofOfWork(const Message& msg)
 
         sendBaseHashToMiners();
     }
+}
+
+void Manager::processMinerHashRequest(const Message& msg)
+{
+    log("MSG_MINER_MANAGER_HASHREQUEST");
+
+    MSG_MANAGER_MINER_NEWBASEHASH contents;
+    contents.newBaseHash = currentBaseHash;
+    Message hashMsg;
+    contents.compose(hashMsg);
+    connFromMiners.sendMessage(msg.socket, hashMsg);
 }

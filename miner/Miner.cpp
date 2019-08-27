@@ -27,14 +27,7 @@ void Miner::processMessage(const Message& msg)
     {
     case MSG_MANAGER_MINER_NEWBASEHASH::id:
     {
-        MSG_MANAGER_MINER_NEWBASEHASH contents{ msg };
-        baseHash.set(contents.newBaseHash);
-
-        log("Recieved new baseHash: %", contents.newBaseHash);
-        if(!currentlyMining)
-        {
-            startMining();
-        }
+        processManagerNewBaseHash(msg);
         return;
     }
     default:
@@ -98,5 +91,17 @@ void Miner::checkProof()
 
         connToManager.sendMessage(msg);
         return;
+    }
+}
+
+void Miner::processManagerNewBaseHash(const Message& msg)
+{
+    MSG_MANAGER_MINER_NEWBASEHASH contents{ msg };
+    baseHash.set(contents.newBaseHash);
+
+    log("Recieved new baseHash: %", contents.newBaseHash);
+    if(!currentlyMining)
+    {
+        startMining();
     }
 }

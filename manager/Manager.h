@@ -18,4 +18,5 @@ public:
     void processTransactionRequestReply(Message& msg);
     void sendBaseHashToMiners();
     void processIncomingProofOfWork(const Message& msg);
+    void processMinerHashRequest(const Message& msg);
 };

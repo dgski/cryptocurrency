@@ -14,4 +14,5 @@ public:
     void stopMining();
     void mine();
     void checkProof();
+    void processManagerNewBaseHash(const Message& msg);
 };
