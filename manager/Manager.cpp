@@ -45,35 +45,7 @@ void Manager::processMessage(const Message& msg)
     {
     case MSG_MINER_MANAGER_PROOFOFWORK::id:
     {
-        MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
-        log("MSG_MINER_MANAGER_PROOFOFWORK proof=%", contents.proofOfWork);
-
-        if(validProof(contents.proofOfWork, currentBaseHash))
-        {
-            log("Proof is valid, Sending to Networker for Propagation.");
-            currentBlock.proofOfWork = contents.proofOfWork;
-
-            MSG_MANAGER_NETWORKER_NEWBLOCK blockContents;
-            blockContents.block = currentBlock;
-            Message blockMsg;
-            blockContents.compose(blockMsg);
-            connFromNetworker.sendMessage(blockMsg);
-            
-            // Save to Blockchainer module
-            // sendMessage(connToBlockchainer.getSocket(), msg);
-
-            log("Starting work on next block.");
-            
-            Block newBlock;
-            newBlock.id = currentBlock.id + 1;
-            newBlock.hashOfLastBlock = currentBlock.calculateFullHash();
-            
-            currentBlock = newBlock;
-            currentBaseHash = currentBlock.calculateBaseHash();
-
-            sendBaseHashToMiners();
-        }
-
+        processIncomingProofOfWork(msg);
         return;
     }
     case MSG_MINER_MANAGER_HASHREQUEST::id:
@@ -140,4 +112,39 @@ void Manager::sendBaseHashToMiners()
     Message hashMsg;
     contents.compose(hashMsg);
     connFromMiners.sendMessage(hashMsg);
+}
+
+void Manager::processIncomingProofOfWork(const Message& msg)
+{
+    MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
+    log("MSG_MINER_MANAGER_PROOFOFWORK proof=%", contents.proofOfWork);
+
+    if(validProof(contents.proofOfWork, currentBaseHash))
+    {
+        log("Proof is valid, Sending to Networker for Propagation.");
+        currentBlock.proofOfWork = contents.proofOfWork;
+
+        // saveToChain
+        chain.push_back(currentBlock);
+
+        MSG_MANAGER_NETWORKER_NEWBLOCK blockContents;
+        blockContents.block = currentBlock;
+        Message blockMsg;
+        blockContents.compose(blockMsg);
+        connFromNetworker.sendMessage(blockMsg);
+        
+        // Save to Blockchainer module
+        // sendMessage(connToBlockchainer.getSocket(), msg);
+
+        log("Starting work on next block.");
+        
+        Block newBlock;
+        newBlock.id = currentBlock.id + 1;
+        newBlock.hashOfLastBlock = currentBlock.calculateFullHash();
+        
+        currentBlock = newBlock;
+        currentBaseHash = currentBlock.calculateBaseHash();
+
+        sendBaseHashToMiners();
+    }
 }
