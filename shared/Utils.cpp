@@ -52,9 +52,9 @@ IpInfo strToIp(str s)
 {
     IpInfo res;
 
-    auto it = std::next(std::find(s.begin(), s.end(), ':'));
+    auto it = std::find(s.begin(), s.end(), ':');
     std::copy(s.begin(), it, std::back_inserter(res.address));
-    res.port = atoi(str(it, s.end()).c_str());
+    res.port = atoi(str(std::next(it), s.end()).c_str());
     
     return res;
 }

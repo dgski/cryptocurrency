@@ -6,21 +6,13 @@ Networker::Networker(const char* iniFileName)
 
     std::map<str,str> params = getInitParameters(iniFileName);
 
-    connToManager.init(
-        params["connToManagerIP"].c_str(),
-        atoi(params["connToManagerPORT"].c_str())
-    );
-
-    connFromOtherNodes.init(
-        params["connFromOtherNodesIP"].c_str(),
-        atoi(params["connFromOtherNodesPORT"].c_str())
-    );
-    
-    log("%", params["connToOtherNodes"]);
-
+    connToManager.init(strToIp(params.at("connToManager")));
     registerClientConnection(&connToManager);
-    registerClientConnection(&connToOtherNodes);
+
+    connFromOtherNodes.init(strToIp(params.at("connFromOtherNodes")));
     registerServerConnection(&connFromOtherNodes);
+
+    //registerClientConnection(&connToOtherNodes);
 }
 
 void Networker::processMessage(const Message& msg)

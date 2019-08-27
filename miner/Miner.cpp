@@ -6,11 +6,7 @@ Miner::Miner(const char* iniFileName)
 
     const std::map<str,str> params = getInitParameters(iniFileName);
 
-    connToManager.init(
-        params.at("connToManagerIP").c_str(),
-        atoi(params.at("connToManagerPORT").c_str())
-    );
-
+    connToManager.init(strToIp(params.at("connToManager")));
     registerClientConnection(&connToManager);
 
     log("Requesting hash");

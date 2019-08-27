@@ -103,8 +103,10 @@ struct ServerConnection : Connection
     std::vector<int> sockets;
     sockaddr_in address;
 
-    void init(const char* ip, int port)
+    void init(const IpInfo& ip)
     {
+        log("Initializing ServerConnection address=%, port=%", ip.address, ip.port);
+
         if ((serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
         { 
             perror("socket failed"); 
@@ -112,7 +114,7 @@ struct ServerConnection : Connection
         
         address.sin_family = AF_INET; 
         address.sin_addr.s_addr = INADDR_ANY; //0.0.0.0
-        address.sin_port = htons(port); 
+        address.sin_port = htons(ip.port); 
         
         if (bind(serverFileDescriptor,(sockaddr *)&address, sizeof(address)) < 0) 
         {
@@ -217,9 +219,9 @@ struct ClientConnection : Connection
 {
     int socketFileDescriptor;
 
-    void init(const char* ip, int port)
+    void init(const IpInfo& ip)
     {
-        log("Initializing ClientConnection ip=%, port=%", ip, port);
+        log("Initializing ClientConnection address=%, port=%", ip.address, ip.port);
         sockaddr_in serv_addr;
 
         socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -230,9 +232,9 @@ struct ClientConnection : Connection
         } 
     
         serv_addr.sin_family = AF_INET; 
-        serv_addr.sin_port = htons(port); 
+        serv_addr.sin_port = htons(ip.port); 
         
-        if(inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0)  
+        if(inet_pton(AF_INET, ip.address.c_str(), &serv_addr.sin_addr) <= 0)  
         { 
             log("Invalid address/ Address not supported");
             return; 

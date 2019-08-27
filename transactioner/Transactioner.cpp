@@ -6,23 +6,16 @@ Transactioner::Transactioner(const char* iniFileName)
 
     const std::map<str,str> params = getInitParameters(iniFileName);
 
-    connToManager.init(
-        params.at("connToManagerIP").c_str(),
-        atoi(params.at("connToManagerPORT").c_str())
-    );
+    connToManager.init(strToIp(params.at("connToManager")));
+    registerClientConnection(&connToManager);
 
-    connFromClients.init(
-        params.at("connFromClientsIP").c_str(),
-        atoi(params.at("connFromClientsPORT").c_str())
-    );
+    connFromClients.init(strToIp(params.at("connFromClients")));
+    registerServerConnection(&connFromClients);
 
     registerRepeatedTask([]()
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     });
-
-    registerClientConnection(&connToManager);
-    registerServerConnection(&connFromClients);
 }
 
 void Transactioner::processMessage(const Message& msg)

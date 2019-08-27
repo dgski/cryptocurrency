@@ -6,26 +6,13 @@ Manager::Manager(const char* iniFileName)
 
     log("Manager module starting");
 
-    connFromMiners.init(
-        params.at("connFromMinersIP").c_str(),
-        atoi(params.at("connFromMinersPORT").c_str())
-    );
-
-    auto i = strToIp(params.at("connFromMiners"));
-    log("IpInfo: address=% port=%", i.address, i.port);
-
-    connFromTransactioner.init(
-        params.at("connFromTransactionerIP").c_str(),
-        atoi(params.at("connFromTransactionerPORT").c_str()) 
-    );
-
-    connFromNetworker.init(
-        params.at("connFromNetworkerIP").c_str(),
-        atoi(params.at("connFromNetworkerPORT").c_str())
-    );
-    
+    connFromMiners.init(strToIp(params.at("connFromMiners")));
     registerServerConnection(&connFromMiners);
+
+    connFromTransactioner.init(strToIp(params.at("connFromTransactioner")));
     registerServerConnection(&connFromTransactioner);
+
+    connFromNetworker.init(strToIp(params.at("connFromNetworker")));
     registerServerConnection(&connFromNetworker);
 
     registerRepeatedTask([this]()

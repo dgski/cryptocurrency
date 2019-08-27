@@ -5,7 +5,7 @@
 int main()
 {
     ClientConnection connToTransactioner;
-    connToTransactioner.init("0.0.0.0", 8000);
+    connToTransactioner.init(IpInfo{"0.0.0.0",8000});
 
     while(true)
     {
