@@ -25,16 +25,16 @@ void Miner::processMessage(const Message& msg)
 {
     switch(msg.id)
     {
-    case MSG_MANAGER_MINER_NEWBASEHASH::id:
-    {
-        processManagerNewBaseHash(msg);
-        return;
-    }
-    default:
-    {
-        log("Unhandled MSG id=%", msg.id);
-        return;
-    }
+        case MSG_MANAGER_MINER_NEWBASEHASH::id:
+        {
+            processManagerNewBaseHash(msg);
+            return;
+        }
+        default:
+        {
+            log("Unhandled MSG id=%", msg.id);
+            return;
+        }
     }
 }
 
