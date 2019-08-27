@@ -11,49 +11,72 @@ Networker::Networker(const char* iniFileName)
         atoi(params["connToManagerPORT"].c_str())
     );
 
+    connFromOtherNodes.init(
+        params["connFromOtherNodesIP"].c_str(),
+        atoi(params["connFromOtherNodesPORT"].c_str())
+    );
+    
+    log("%", params["connToOtherNodes"]);
+
     registerClientConnection(&connToManager);
+    registerClientConnection(&connToOtherNodes);
+    registerServerConnection(&connFromOtherNodes);
 }
 
 void Networker::processMessage(const Message& msg)
 {
     switch(msg.id)
     {
-    case MSG_MANAGER_NETWORKER_NEWBLOCK::id:
-    {
-        MSG_MANAGER_NETWORKER_NEWBLOCK contents{ msg };
-        log(
-            "Received new Block from Manager: numOfTrans=%, proofOfWork=%",
-            contents.block.transactions.size(),
-            contents.block.proofOfWork
-        );
-
-        MSG_NETWORKER_NETWORKER_NEWBLOCK contentsToPropagate;
-        contentsToPropagate.block.transactions = move(contents.block.transactions);
-        contentsToPropagate.block.proofOfWork = contents.block.proofOfWork;
-        // TODO: Send to other networker modules
-        return;
-    }
-    case MSG_NETWORKER_NETWORKER_NEWBLOCK::id:
-    {
-        MSG_NETWORKER_NETWORKER_NEWBLOCK contents{ msg };
-        log(
-            "Received new Block from external Node: numOfTrans=%, proofOfWork=%",
-            contents.block.transactions.size(),
-            contents.block.proofOfWork
-        );
-
-        if(!contents.block.isValid())
+        case MSG_MANAGER_NETWORKER_NEWBLOCK::id:
         {
-            log("Block is invalid");
+            processNewBlockFromManager(msg);
             return;
         }
-
-        // Send to Manager
+        case MSG_NETWORKER_NETWORKER_NEWBLOCK::id:
+        {
+            processNewBlockFromOtherNode(msg);
+            return;
+        }
+        default:
+        {
+            log("Unhandled MSG id=%", msg.id);
+            return;
+        }
     }
-    default:
+}
+
+void Networker::processNewBlockFromManager(const Message& msg)
+{
+    MSG_MANAGER_NETWORKER_NEWBLOCK contents{ msg };
+    log(
+        "Received new Block from Manager: numOfTrans=%, proofOfWork=%",
+        contents.block.transactions.size(),
+        contents.block.proofOfWork
+    );
+
+    MSG_NETWORKER_NETWORKER_NEWBLOCK contentsToPropagate;
+    contentsToPropagate.block.transactions = move(contents.block.transactions);
+    contentsToPropagate.block.proofOfWork = contents.block.proofOfWork;
+
+    Message msgToPropagate;
+    contentsToPropagate.compose(msgToPropagate);
+    connFromOtherNodes.sendMessage(msgToPropagate);
+}
+
+void Networker::processNewBlockFromOtherNode(const Message& msg)
+{
+    MSG_NETWORKER_NETWORKER_NEWBLOCK contents{ msg };   
+    log(
+        "Received new Block from external Node: numOfTrans=%, proofOfWork=%",
+        contents.block.transactions.size(),
+        contents.block.proofOfWork
+    );
+
+    if(!contents.block.isValid())
     {
-        log("Unhandled MSG id=%", msg.id);
+        log("Block is invalid");
         return;
     }
-    }
+
+    // Send to Manager
 }
