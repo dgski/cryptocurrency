@@ -43,6 +43,15 @@ struct Message
         return *this;
     }
 
+    Message& compose_i32(i32 val)
+    {
+        data.resize(data.size() + sizeof(i32));
+        memcpy(data.data() + size, &val, sizeof(i32));
+        size += sizeof(i32);
+
+        return *this;
+    }
+
     size_t getFullSize() const
     {
         return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
@@ -69,6 +78,13 @@ struct Parser
         val.assign((const char*)ptr);
         ptr += val.size() + 1;
         
+        return *this;
+    }
+
+    Parser& parser_i32(i32& val)
+    {
+        val = *(i32*)ptr;
+        ptr += sizeof(i32);
         return *this;
     }
 };

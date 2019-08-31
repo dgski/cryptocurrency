@@ -90,7 +90,14 @@ void Networker::processNewBlockFromOtherNode(const Message& msg)
         return;
     }
 
-    // Send to Manager
+    MSG_NETWORKER_MANAGER_NEWBLOCK contentsToManager;
+    contentsToManager.block = std::move(contents.block);
+    contentsToManager.connId = msg.socket;
+    
+    Message msgToManager;
+    contentsToManager.compose(msgToManager);
+
+    connToManager.sendMessage(msgToManager);
 }
 
 void Networker::processRegisterNewNode(const Message& msg)

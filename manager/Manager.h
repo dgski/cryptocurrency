@@ -19,4 +19,7 @@ public:
     void sendBaseHashToMiners();
     void processIncomingProofOfWork(const Message& msg);
     void processMinerHashRequest(const Message& msg);
+    void processPotentialWinningBlock(const Message& msg);
+    void processPotentialWinningBlock_MissingChainReply(Block& winningBlock, const Message& msg);
+    void processPotentialWinningBlock_Finalize();
 };

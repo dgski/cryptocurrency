@@ -43,6 +43,10 @@ void Manager::processMessage(const Message& msg)
             processMinerHashRequest(msg);
             return;
         }
+        case MSG_NETWORKER_MANAGER_NEWBLOCK::id:
+        {
+            processPotentialWinningBlock(msg);
+        }
         default:
         {
             log("Unhandled MSG id=%", msg.id);
@@ -118,9 +122,6 @@ void Manager::processIncomingProofOfWork(const Message& msg)
         blockContents.compose(blockMsg);
         connFromNetworker.sendMessage(blockMsg);
         
-        // Save to Blockchainer module
-        // sendMessage(connToBlockchainer.getSocket(), msg);
-
         log("Starting work on next block.");
         
         Block newBlock;
@@ -143,4 +144,51 @@ void Manager::processMinerHashRequest(const Message& msg)
     Message hashMsg;
     contents.compose(hashMsg);
     connFromMiners.sendMessage(msg.socket, hashMsg);
+}
+
+void Manager::processPotentialWinningBlock(const Message& msg)
+{
+    MSG_NETWORKER_MANAGER_NEWBLOCK contents{ msg };
+    log("Received Potential New Winning Block");
+
+    if(currentBlock.id > contents.block.id)
+    {
+        log("Block id is lower than ours; ignore");
+        return;
+    }
+
+    
+}
+
+void Manager::processPotentialWinningBlock_MissingChainReply(Block& winningBlock, const Message& msg)
+{
+    currentBlock.id = winningBlock.id + 1;
+    currentBlock.hashOfLastBlock = winningBlock.calculateFullHash();
+
+    std::remove_if(
+        currentBlock.transactions.begin(),
+        currentBlock.transactions.end(),
+        [&winningBlock, this](const Transaction& currTrans)
+        {
+            auto& accepted = winningBlock.transactions;
+            auto it = std::find_if(
+                accepted.begin(),
+                accepted.end(),
+                [currTrans](const Transaction& acceptedTrans)
+                {
+                    return currTrans.signature == acceptedTrans.signature;
+                });
+
+            return it != currentBlock.transactions.end();
+        }
+    );
+
+    chain.emplace_back(std::move(winningBlock));
+    currentBaseHash = currentBlock.calculateBaseHash();
+    sendBaseHashToMiners();
+}
+
+void Manager::processPotentialWinningBlock_Finalize()
+{
+
 }
