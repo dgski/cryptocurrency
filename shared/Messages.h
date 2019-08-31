@@ -210,3 +210,29 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK
         block.compose(msg);
     }
 };
+
+struct MSG_NETWORKER_NETWORKER_REGISTERME
+{
+    constexpr static u32 id = 8;
+    
+    str connStr;
+
+    MSG_NETWORKER_NETWORKER_REGISTERME(){}
+
+    MSG_NETWORKER_NETWORKER_REGISTERME(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {
+        parser.parse_str(connStr);
+    }
+
+    void compose(Message& msg)
+    {
+        msg.id = id;
+        msg.compose_str(connStr);
+    }
+};

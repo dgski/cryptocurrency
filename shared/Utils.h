@@ -36,6 +36,12 @@ public:
     }
 };
 
+template<typename T>
+class Protected
+{
+    
+};
+
 std::map<str, str> getInitParameters(const char* fileName);
 
 template<typename T>
@@ -84,3 +90,5 @@ struct IpInfo
 };
 
 IpInfo strToIp(str s);
+
+std::vector<str> splitStr(const str& input);

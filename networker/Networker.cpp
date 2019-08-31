@@ -12,7 +12,19 @@ Networker::Networker(const char* iniFileName)
     connFromOtherNodes.init(strToIp(params.at("connFromOtherNodes")));
     registerServerConnection(&connFromOtherNodes);
 
-    //registerClientConnection(&connToOtherNodes);
+    auto connStrings = splitStr(params.at("connsToOtherNodes"));
+    for(const str& connString : connStrings)
+    {
+        auto& newConn = connsToOtherNodes.emplace_back();
+        newConn.init(strToIp(connString));
+        registerClientConnection(&newConn);
+
+        MSG_NETWORKER_NETWORKER_REGISTERME contents;
+        contents.connStr = params.at("connFromOtherNodes");
+        Message msg;
+        contents.compose(msg);
+        newConn.sendMessage(msg); // TODO Safety
+    }
 }
 
 void Networker::processMessage(const Message& msg)
@@ -27,6 +39,11 @@ void Networker::processMessage(const Message& msg)
         case MSG_NETWORKER_NETWORKER_NEWBLOCK::id:
         {
             processNewBlockFromOtherNode(msg);
+            return;
+        }
+        case MSG_NETWORKER_NETWORKER_REGISTERME::id:
+        {
+            processRegisterNewNode(msg);
             return;
         }
         default:
@@ -52,7 +69,10 @@ void Networker::processNewBlockFromManager(const Message& msg)
 
     Message msgToPropagate;
     contentsToPropagate.compose(msgToPropagate);
-    connFromOtherNodes.sendMessage(msgToPropagate);
+    for(Connection& conn : connsToOtherNodes)
+    {
+        conn.sendMessage(msgToPropagate);
+    }
 }
 
 void Networker::processNewBlockFromOtherNode(const Message& msg)
@@ -71,4 +91,14 @@ void Networker::processNewBlockFromOtherNode(const Message& msg)
     }
 
     // Send to Manager
+}
+
+void Networker::processRegisterNewNode(const Message& msg)
+{
+    MSG_NETWORKER_NETWORKER_REGISTERME contents{ msg };
+    log("Registering New Node at: %", contents.connStr);
+
+    auto& newConn = connsToOtherNodes.emplace_back();
+    newConn.init(strToIp(contents.connStr));
+    registerClientConnection(&newConn);
 }

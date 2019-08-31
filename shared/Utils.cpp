@@ -58,3 +58,21 @@ IpInfo strToIp(str s)
     
     return res;
 }
+
+std::vector<str> splitStr(const str& input)
+{
+    std::vector<str> output;
+    std::string tmp;
+    for(char c : input)
+    {   
+        if(c == ',')
+        {
+            output.push_back(std::move(tmp));
+            tmp.clear();
+            continue;
+        }
+        tmp.push_back(c);
+    }
+
+    return output;
+}
