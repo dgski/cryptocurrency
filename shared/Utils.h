@@ -92,3 +92,5 @@ struct IpInfo
 IpInfo strToIp(str s);
 
 std::vector<str> splitStr(const str& input);
+
+u64 getCurrentUnixTime();

@@ -13,11 +13,18 @@
 #include "../shared/Messages.h"
 #include "../shared/Blockchain.h"
 
+struct ScheduledTask
+{
+    time_t when;
+    std::function<void()> task;
+};
+
 class Module
 {
     std::vector<ServerConnection*> serverConnnections;
     std::vector<ClientConnection*> clientConnections;
     std::vector<std::function<void()>> repeatedTasks;
+    std::vector<ScheduledTask> scheduledTasks;
 public:
     virtual void processMessage(const Message& msg) = 0;
     void run();
@@ -36,5 +43,12 @@ public:
     void registerRepeatedTask(F func)
     {
         repeatedTasks.push_back(func);
+    }
+
+    template<typename F>
+    void registerScheduledTask(u64 millisecondsToWait, F func)
+    {
+        u64 currentTime = getCurrentUnixTime();
+        scheduledTasks.push_back({currentTime + millisecondsToWait, func});
     }
 };

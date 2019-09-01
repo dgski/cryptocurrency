@@ -15,7 +15,7 @@ int main()
         if(0 < x)
         {
             Transaction t;
-            t.time = std::chrono::system_clock::now().time_since_epoch().count();
+            t.time = getCurrentUnixTime();
             t.sender = "Bob";
             t.recipiant = "Michael";
             t.amount = 10;
