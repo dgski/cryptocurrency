@@ -79,5 +79,7 @@ std::vector<str> splitStr(const str& input)
 
 u64 getCurrentUnixTime()
 {
-    return std::chrono::system_clock::now().time_since_epoch().count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
 }

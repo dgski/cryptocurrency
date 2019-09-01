@@ -14,11 +14,6 @@ Miner::Miner(const char* iniFileName)
     Message msg;
     hashRequest.compose(msg);
     connToManager.sendMessage(msg);
-
-    registerRepeatedTask([this]()
-    {
-        checkProof();
-    });
 }
 
 void Miner::processMessage(const Message& msg)
@@ -43,6 +38,10 @@ void Miner::startMining()
     currentlyMining = true;
     std::thread t(&Miner::mine, this);
     t.detach();
+    registerScheduledTask(100, [this]()
+    {
+        checkProof();
+    });
 }
 
 void Miner::stopMining()
@@ -92,6 +91,11 @@ void Miner::checkProof()
         connToManager.sendMessage(msg);
         return;
     }
+
+    registerScheduledTask(100, [this]()
+    {
+        checkProof();
+    });
 }
 
 void Miner::processManagerNewBaseHash(const Message& msg)

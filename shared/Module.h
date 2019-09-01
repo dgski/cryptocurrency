@@ -5,6 +5,8 @@
 #include <optional>
 #include <unordered_map>
 #include <functional>
+#include <set>
+#include <list>
 
 #include "../shared/Types.h"
 #include "../shared/Utils.h"
@@ -15,7 +17,7 @@
 
 struct ScheduledTask
 {
-    time_t when;
+    u64 when;
     std::function<void()> task;
 };
 
@@ -23,8 +25,7 @@ class Module
 {
     std::vector<ServerConnection*> serverConnnections;
     std::vector<ClientConnection*> clientConnections;
-    std::vector<std::function<void()>> repeatedTasks;
-    std::vector<ScheduledTask> scheduledTasks;
+    std::list<ScheduledTask> scheduledTasks;
 public:
     virtual void processMessage(const Message& msg) = 0;
     void run();
@@ -37,12 +38,6 @@ public:
     void registerClientConnection(ClientConnection* conn)
     {
         clientConnections.push_back(conn);
-    }
-
-    template<typename F>
-    void registerRepeatedTask(F func)
-    {
-        repeatedTasks.push_back(func);
     }
 
     template<typename F>

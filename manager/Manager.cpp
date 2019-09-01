@@ -21,14 +21,10 @@ Manager::Manager(const char* iniFileName)
     );
     registerServerConnection(&connFromNetworker);
 
-    registerRepeatedTask([this]()
-    {
-        if(currentBlock.transactions.size() < 200)
-        {
-            askTransactionerForNewTransactions();
-        }
-        std::this_thread::sleep_for (std::chrono::seconds(1));
-    });
+    registerScheduledTask(
+        1000,
+        [this](){ askTransactionerForNewTransactions(); }
+    );
 
     currentBaseHash = 12393939334343; // FAKE
 }
@@ -66,7 +62,12 @@ void Manager::processMessage(const Message& msg)
 }
 
 void Manager::askTransactionerForNewTransactions()
-{    
+{   
+    if(currentBlock.transactions.size() == 200)
+    {
+        return;
+    }
+
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
     contents.numOfTransactionsRequested = 200 - currentBlock.transactions.size();
 
@@ -77,6 +78,11 @@ void Manager::askTransactionerForNewTransactions()
     {
         processTransactionRequestReply(reply);
     });
+
+    registerScheduledTask(
+        1000,
+        [this](){ askTransactionerForNewTransactions(); }
+    );
 }
 
 void Manager::processTransactionRequestReply(Message& msg)
