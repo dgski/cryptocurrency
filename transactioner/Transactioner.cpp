@@ -11,11 +11,6 @@ Transactioner::Transactioner(const char* iniFileName)
 
     connFromClients.init(strToIp(params.at("connFromClients")));
     registerServerConnection(&connFromClients);
-
-    registerRepeatedTask([]()
-    {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    });
 }
 
 void Transactioner::processMessage(const Message& msg)
@@ -43,7 +38,10 @@ void Transactioner::processMessage(const Message& msg)
 void Transactioner::processRequestForTransactions(const Message& msg)
 {
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
-    log("MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ numOfTransactionsRequested=%", contents.numOfTransactionsRequested);
+    log(
+        "MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ numOfTransactionsRequested=%",
+        contents.numOfTransactionsRequested
+    );
 
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ responseContents;
 
