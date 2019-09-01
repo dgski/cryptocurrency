@@ -194,11 +194,15 @@ struct ServerConnection : Connection
         }
     }
 
-    void sendMessage(int socket, Message& msg)
+    void sendMessage(int socket, Message& msg, std::optional<Callback> callback = std::nullopt)
     {
         if(msg.reqId == 0)
         {
             msg.reqId = getNextReqId();
+        }
+        if(callback.has_value())
+        {
+            callbacks[msg.reqId] = callback.value();
         }
 
         sendFinalMessage(socket, msg);

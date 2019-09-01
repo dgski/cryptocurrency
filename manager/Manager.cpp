@@ -46,6 +46,12 @@ void Manager::processMessage(const Message& msg)
         case MSG_NETWORKER_MANAGER_NEWBLOCK::id:
         {
             processPotentialWinningBlock(msg);
+            return;
+        }
+        case MSG_NETWORKER_MANAGER_CHAINREQUEST::id:
+        {
+            processNetworkerChainRequest(msg);
+            return;
         }
         default:
         {
@@ -157,11 +163,23 @@ void Manager::processPotentialWinningBlock(const Message& msg)
         return;
     }
 
-    
+    MSG_MANAGER_NETWORKER_CHAINREQUEST chainRequest;
+    chainRequest.maxId = contents.block.id;
+    chainRequest.connId = contents.connId;
+
+    Message requestMsg;
+    chainRequest.compose(requestMsg);
+
+    connFromNetworker.sendMessage(requestMsg, [this](const Message& msg)
+    {
+        processPotentialWinningBlock_ChainReply(msg);
+    });
 }
 
-void Manager::processPotentialWinningBlock_MissingChainReply(Block& winningBlock, const Message& msg)
+void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
 {
+
+    /*
     currentBlock.id = winningBlock.id + 1;
     currentBlock.hashOfLastBlock = winningBlock.calculateFullHash();
 
@@ -186,9 +204,33 @@ void Manager::processPotentialWinningBlock_MissingChainReply(Block& winningBlock
     chain.emplace_back(std::move(winningBlock));
     currentBaseHash = currentBlock.calculateBaseHash();
     sendBaseHashToMiners();
+    */
 }
 
 void Manager::processPotentialWinningBlock_Finalize()
 {
 
+}
+
+void Manager::processNetworkerChainRequest(const Message& msg)
+{
+    MSG_NETWORKER_MANAGER_CHAINREQUEST contents{ msg };
+
+    MSG_MANAGER_NETWORKER_CHAIN replyContents;
+
+    std::copy_if(
+        chain.begin(),
+        chain.end(),
+        std::back_inserter(replyContents.chain),
+        [&contents](const Block& block)
+        {
+            return block.id >= contents.maxId;
+        }
+    );
+
+    Message replyMessage;
+    replyMessage.reqId = msg.reqId;
+    replyContents.compose(replyMessage);
+    
+    connFromNetworker.sendMessage(replyMessage);
 }

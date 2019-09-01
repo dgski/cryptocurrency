@@ -265,3 +265,187 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK
         msg.compose_i32(connId);
     }
 };
+
+struct MSG_MANAGER_NETWORKER_CHAINREQUEST
+{
+    constexpr static u32 id = 10;
+
+    u64 maxId;
+    i32 connId;
+
+    MSG_MANAGER_NETWORKER_CHAINREQUEST(){}
+
+    MSG_MANAGER_NETWORKER_CHAINREQUEST(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {        
+        parser.parse_u64(maxId);
+    }
+
+    void compose(Message& msg)
+    {
+        msg.compose_u64(maxId);
+    }
+};
+
+struct MSG_NETWORKER_NETWORKER_CHAINREQUEST
+{
+    constexpr static u32 id = 11;
+
+    u64 maxId;
+
+    MSG_NETWORKER_NETWORKER_CHAINREQUEST(){}
+
+    MSG_NETWORKER_NETWORKER_CHAINREQUEST(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {        
+        parser.parse_u64(maxId);
+    }
+
+    void compose(Message& msg)
+    {
+        msg.compose_u64(maxId);
+    }
+};
+
+struct MSG_NETWORKER_MANAGER_CHAINREQUEST
+{
+    constexpr static u32 id = 11;
+
+    u64 maxId;
+
+    MSG_NETWORKER_MANAGER_CHAINREQUEST(){}
+
+    MSG_NETWORKER_MANAGER_CHAINREQUEST(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {        
+        parser.parse_u64(maxId);
+    }
+
+    void compose(Message& msg)
+    {
+        msg.compose_u64(maxId);
+    }
+};
+
+struct MSG_MANAGER_NETWORKER_CHAIN
+{
+    constexpr static u32 id = 12;
+
+    std::vector<Block> chain;
+
+    MSG_MANAGER_NETWORKER_CHAIN(){}
+
+    MSG_MANAGER_NETWORKER_CHAIN(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {        
+        u64 size;
+        parser.parse_u64(size);
+        for(u64 i{ 0 }; i < size; ++i)
+        {
+            auto& b = chain.emplace_back();
+            b.parse(parser);
+        }
+    }
+
+    void compose(Message& msg)
+    {
+        msg.id = id;
+        msg.compose_u64((u64)chain.size());
+        for(Block& b : chain)
+        {
+            b.compose(msg);
+        }
+    }
+};
+
+struct MSG_NETWORKER_MANAGER_CHAIN
+{
+    constexpr static u32 id = 13;
+
+    std::vector<Block> chain;
+
+    MSG_NETWORKER_MANAGER_CHAIN(){}
+
+    MSG_NETWORKER_MANAGER_CHAIN(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {        
+        u64 size;
+        parser.parse_u64(size);
+        for(u64 i{ 0 }; i < size; ++i)
+        {
+            auto& b = chain.emplace_back();
+            b.parse(parser);
+        }
+    }
+
+    void compose(Message& msg)
+    {
+        msg.id = id;
+        msg.compose_u64((u64)chain.size());
+        for(Block& b : chain)
+        {
+            b.compose(msg);
+        }
+    }
+};
+
+struct MSG_NETWORKER_NETWORKER_CHAIN
+{
+    constexpr static u32 id = 14;
+
+    std::vector<Block> chain;
+
+    MSG_NETWORKER_NETWORKER_CHAIN(){}
+
+    MSG_NETWORKER_NETWORKER_CHAIN(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+    }
+
+    void parse(Parser& parser)
+    {        
+        u64 size;
+        parser.parse_u64(size);
+        for(u64 i{ 0 }; i < size; ++i)
+        {
+            auto& b = chain.emplace_back();
+            b.parse(parser);
+        }
+    }
+
+    void compose(Message& msg)
+    {
+        msg.id = id;
+        msg.compose_u64((u64)chain.size());
+        for(Block& b : chain)
+        {
+            b.compose(msg);
+        }
+    }
+};
