@@ -7,6 +7,8 @@ class Miner : public Module
     bool currentlyMining = false;
     AtomicChannel<u64> proof;
     AtomicChannel<u64> baseHash;
+    u64 incrementSize;
+
 public:
     Miner(const char* iniFileName);
     void processMessage(const Message& msg);
@@ -15,4 +17,5 @@ public:
     void mine();
     void checkProof();
     void processManagerNewBaseHash(const Message& msg);
+    void requestNewBaseHash();
 };

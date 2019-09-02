@@ -4,7 +4,7 @@ Networker::Networker(const char* iniFileName)
 {
     log("Networker Module Starting");
 
-    std::map<str,str> params = getInitParameters(iniFileName);
+    const std::map<str,str> params = getInitParameters(iniFileName);
 
     connToManager.init(strToIp(params.at("connToManager")));
     registerClientConnection(&connToManager);
@@ -12,7 +12,7 @@ Networker::Networker(const char* iniFileName)
     connFromOtherNodes.init(strToIp(params.at("connFromOtherNodes")));
     registerServerConnection(&connFromOtherNodes);
 
-    auto connStrings = splitStr(params.at("connsToOtherNodes"));
+    const auto connStrings = splitStr(params.at("connsToOtherNodes"));
     for(const str& connString : connStrings)
     {
         auto& newConn = connsToOtherNodes.emplace_back();
@@ -67,15 +67,9 @@ void Networker::processMessage(const Message& msg)
 void Networker::processNewBlockFromManager(const Message& msg)
 {
     MSG_MANAGER_NETWORKER_NEWBLOCK contents{ msg };
-    log(
-        "Received new Block from Manager: numOfTrans=%, proofOfWork=%",
-        contents.block.transactions.size(),
-        contents.block.proofOfWork
-    );
 
     MSG_NETWORKER_NETWORKER_NEWBLOCK contentsToPropagate;
-    contentsToPropagate.block.transactions = move(contents.block.transactions);
-    contentsToPropagate.block.proofOfWork = contents.block.proofOfWork;
+    contentsToPropagate.block = std::move(contents.block);
 
     Message msgToPropagate;
     contentsToPropagate.compose(msgToPropagate);
@@ -88,11 +82,6 @@ void Networker::processNewBlockFromManager(const Message& msg)
 void Networker::processNewBlockFromOtherNode(const Message& msg)
 {
     MSG_NETWORKER_NETWORKER_NEWBLOCK contents{ msg };   
-    log(
-        "Received new Block from external Node: numOfTrans=%, proofOfWork=%",
-        contents.block.transactions.size(),
-        contents.block.proofOfWork
-    );
 
     if(!contents.block.isValid())
     {
@@ -113,7 +102,6 @@ void Networker::processNewBlockFromOtherNode(const Message& msg)
 void Networker::processRegisterNewNode(const Message& msg)
 {
     MSG_NETWORKER_NETWORKER_REGISTERME contents{ msg };
-    log("Registering New Node at: %", contents.connStr);
 
     auto& newConn = connsToOtherNodes.emplace_back();
     newConn.init(strToIp(contents.connStr));
@@ -129,20 +117,23 @@ void Networker::processManagerChainRequest(const Message& msg)
     Message chainRequestMsg;
     chainRequest.compose(chainRequestMsg);
 
-    u32 reqId = msg.reqId;
-
-    connFromOtherNodes.sendMessage(contents.connId, chainRequestMsg, [this, reqId](const Message& msg)
+    connFromOtherNodes.sendMessage(contents.connId, chainRequestMsg, [this, reqId = msg.reqId](const Message& msg)
     {
-        MSG_NETWORKER_NETWORKER_CHAIN contents{ msg };
-
-        MSG_NETWORKER_MANAGER_CHAIN chainContents;
-        chainContents.chain = std::move(contents.chain);
-        Message chainToManagerMsg;
-        chainToManagerMsg.reqId = reqId;
-        chainContents.compose(chainToManagerMsg);
-
-        connToManager.sendMessage(chainToManagerMsg);
+        processManagerChainRequest_Reply(reqId, msg);
     });
+}
+
+void Networker::processManagerChainRequest_Reply(u32 reqId, const Message& msg)
+{
+    MSG_NETWORKER_NETWORKER_CHAIN contents{ msg };
+
+    MSG_NETWORKER_MANAGER_CHAIN chainContents;
+    chainContents.chain = std::move(contents.chain);
+    Message chainToManagerMsg;
+    chainToManagerMsg.reqId = reqId;
+    chainContents.compose(chainToManagerMsg);
+
+    connToManager.sendMessage(chainToManagerMsg);
 }
 
 void Networker::processChainRequestFromOtherNode(const Message& msg)

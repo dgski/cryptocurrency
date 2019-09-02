@@ -38,10 +38,6 @@ void Transactioner::processMessage(const Message& msg)
 void Transactioner::processRequestForTransactions(const Message& msg)
 {
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
-    log(
-        "MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ numOfTransactionsRequested=%",
-        contents.numOfTransactionsRequested
-    );
 
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ responseContents;
 
@@ -57,14 +53,14 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     else
     {            
         std::move(
-            end(waitingTransactions) - contents.numOfTransactionsRequested,
-            end(waitingTransactions),
+            std::begin(waitingTransactions),
+            std::begin(waitingTransactions) + contents.numOfTransactionsRequested,
             std::back_inserter(responseContents.transactions)
         );
 
         waitingTransactions.erase(
-            end(waitingTransactions) - contents.numOfTransactionsRequested,
-            end(waitingTransactions)
+            std::begin(waitingTransactions),
+            std::begin(waitingTransactions) + contents.numOfTransactionsRequested
         );
     }
     
@@ -79,11 +75,10 @@ void Transactioner::processRequestForTransactions(const Message& msg)
 void Transactioner::processAddNewTransaction(const Message& msg)
 {
     MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
-    log("MSG_CLIENT_TRANSACTIONER_NEWTRANS");
 
     if(!isTransactionSignatureValid(contents.transaction))
     {
-        std::cout << "Transaction Signature Invalid" << std::endl;
+        log("Transaction Signature Invalid.");
         return;
     }
 
@@ -91,6 +86,6 @@ void Transactioner::processAddNewTransaction(const Message& msg)
 
     log("Adding transaction");
     waitingTransactions.push_back(contents.transaction);
-
+    
     log("Total waiting transactions=%", waitingTransactions.size());
 }

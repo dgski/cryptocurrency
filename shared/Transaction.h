@@ -34,6 +34,19 @@ struct Transaction
             .compose_u64(amount)
             .compose_str(signature);
     }
+
+    void logTransaction() const
+    {
+        log(
+            "Transaction"
+            "{ time:%, sender:%, recipiant:%, amount:%, signature:% }",
+            time,
+            sender,
+            recipiant,
+            amount,
+            signature
+        );
+    }
 };
 
 namespace std

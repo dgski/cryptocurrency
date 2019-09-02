@@ -11,7 +11,10 @@ public:
     void processNewBlockFromManager(const Message& msg);
     void processNewBlockFromOtherNode(const Message& msg);
     void processRegisterNewNode(const Message& msg);
+
     void processManagerChainRequest(const Message& msg);
+    void processManagerChainRequest_Reply(u32 reqId, const Message& msg);
+
     void processChainRequestFromOtherNode(const Message& msg);
     void processChainRequestFromOtherNode_Reply(u32 reqId, const Message& msg);
 };

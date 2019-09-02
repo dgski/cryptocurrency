@@ -9,11 +9,9 @@ Miner::Miner(const char* iniFileName)
     connToManager.init(strToIp(params.at("connToManager")));
     registerClientConnection(&connToManager);
 
-    log("Requesting hash");
-    MSG_MINER_MANAGER_HASHREQUEST hashRequest;
-    Message msg;
-    hashRequest.compose(msg);
-    connToManager.sendMessage(msg);
+    incrementSize = atoi(params.at("incrementSize").c_str());
+
+    requestNewBaseHash();
 }
 
 void Miner::processMessage(const Message& msg)
@@ -71,7 +69,7 @@ void Miner::mine()
             return;
         }
 
-        nonce += 1;
+        nonce += incrementSize;
     }
 }
 
@@ -79,7 +77,7 @@ void Miner::checkProof()
 {
     if(proof.ready())
     {
-        u64 proofValue = proof.get();
+        const u64 proofValue = proof.get();
         stopMining();
         log("Found valid proof=%, Sending to Manager", proofValue);
 
@@ -101,11 +99,19 @@ void Miner::checkProof()
 void Miner::processManagerNewBaseHash(const Message& msg)
 {
     MSG_MANAGER_MINER_NEWBASEHASH contents{ msg };
+    
     baseHash.set(contents.newBaseHash);
-
-    log("Recieved new baseHash: %", contents.newBaseHash);
     if(!currentlyMining)
     {
         startMining();
     }
+}
+
+void Miner::requestNewBaseHash()
+{
+    log("Requesting new base hash");
+    MSG_MINER_MANAGER_HASHREQUEST hashRequest;
+    Message msg;
+    hashRequest.compose(msg);
+    connToManager.sendMessage(msg);
 }
