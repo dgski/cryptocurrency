@@ -39,7 +39,7 @@ void Transactioner::processRequestForTransactions(const Message& msg)
 {
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
 
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ responseContents;
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ reply;
 
     if(waitingTransactions.empty())
     {
@@ -47,7 +47,7 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     }
     else if(waitingTransactions.size() <= contents.numOfTransactionsRequested)
     {
-        responseContents.transactions = std::move(waitingTransactions);
+        reply.transactions = std::move(waitingTransactions);
         waitingTransactions.clear();
     }
     else
@@ -55,7 +55,7 @@ void Transactioner::processRequestForTransactions(const Message& msg)
         std::move(
             std::begin(waitingTransactions),
             std::begin(waitingTransactions) + contents.numOfTransactionsRequested,
-            std::back_inserter(responseContents.transactions)
+            std::back_inserter(reply.transactions)
         );
 
         waitingTransactions.erase(
@@ -64,12 +64,8 @@ void Transactioner::processRequestForTransactions(const Message& msg)
         );
     }
     
-    Message reply;
-    reply.reqId = msg.reqId;
-    responseContents.compose(reply);
-
-    log("Sending % transactions to Manager", responseContents.transactions.size());
-    connToManager.sendMessage(reply);
+    log("Sending % transactions to Manager", reply.transactions.size());
+    connToManager.sendMessage(reply.msg());
 }
 
 void Transactioner::processAddNewTransaction(const Message& msg)

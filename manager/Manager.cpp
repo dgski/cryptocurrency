@@ -6,24 +6,21 @@ Manager::Manager(const char* iniFileName)
     
     const std::map<str,str> params = getInitParameters(iniFileName);
 
-    connFromMiners.init(
-        strToIp(params.at("connFromMiners"))
-    );
+    connFromMiners.init(strToIp(params.at("connFromMiners")));
     registerServerConnection(&connFromMiners);
 
-    connFromTransactioner.init(
-        strToIp(params.at("connFromTransactioner"))
-    );
+    connFromTransactioner.init(strToIp(params.at("connFromTransactioner")));
     registerServerConnection(&connFromTransactioner);
 
-    connFromNetworker.init(
-        strToIp(params.at("connFromNetworker"))
-    );
+    connFromNetworker.init(strToIp(params.at("connFromNetworker")));
     registerServerConnection(&connFromNetworker);
 
     registerScheduledTask(
         1000,
-        [this](){ askTransactionerForNewTransactions(); }
+        [this]()
+        {
+            askTransactionerForNewTransactions();
+        }
     );
 
     currentBaseHash = 12393939334343; // FAKE
@@ -70,22 +67,21 @@ void Manager::askTransactionerForNewTransactions()
 
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
     contents.numOfTransactionsRequested = 200 - currentBlock.transactions.size();
-
-    Message msg;
-    contents.compose(msg);
-
-    connFromTransactioner.sendMessage(msg, [this](Message& reply)
+    connFromTransactioner.sendMessage(contents.msg(), [this](const Message& reply)
     {
         processTransactionRequestReply(reply);
     });
 
     registerScheduledTask(
         1000,
-        [this](){ askTransactionerForNewTransactions(); }
+        [this]()
+        {
+            askTransactionerForNewTransactions();
+        }
     );
 }
 
-void Manager::processTransactionRequestReply(Message& msg)
+void Manager::processTransactionRequestReply(const Message& msg)
 {
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
 
@@ -115,9 +111,8 @@ void Manager::sendBaseHashToMiners()
 {
     MSG_MANAGER_MINER_NEWBASEHASH contents;
     contents.newBaseHash = currentBaseHash;
-    Message hashMsg;
-    contents.compose(hashMsg);
-    connFromMiners.sendMessage(hashMsg);
+
+    connFromMiners.sendMessage(contents.msg());
 }
 
 void Manager::mintCurrency()
@@ -146,9 +141,7 @@ void Manager::processIncomingProofOfWork(const Message& msg)
 
         MSG_MANAGER_NETWORKER_NEWBLOCK blockContents;
         blockContents.block = currentBlock;
-        Message blockMsg;
-        blockContents.compose(blockMsg);
-        connFromNetworker.sendMessage(blockMsg);
+        connFromNetworker.sendMessage(blockContents.msg());
         
         log("Starting work on next block.");
         
@@ -186,14 +179,11 @@ void Manager::processPotentialWinningBlock(const Message& msg)
         return;
     }
 
-    MSG_MANAGER_NETWORKER_CHAINREQUEST chainRequest;
-    chainRequest.maxId = contents.block.id;
-    chainRequest.connId = contents.connId;
+    MSG_MANAGER_NETWORKER_CHAINREQUEST reply;
+    reply.maxId = contents.block.id;
+    reply.connId = contents.connId;
 
-    Message requestMsg;
-    chainRequest.compose(requestMsg);
-
-    connFromNetworker.sendMessage(requestMsg, [this](const Message& msg)
+    connFromNetworker.sendMessage(reply.msg(), [this](const Message& msg)
     {
         processPotentialWinningBlock_ChainReply(msg);
     });
@@ -263,21 +253,17 @@ void Manager::processNetworkerChainRequest(const Message& msg)
 {
     MSG_NETWORKER_MANAGER_CHAINREQUEST contents{ msg };
 
-    MSG_MANAGER_NETWORKER_CHAIN replyContents;
+    MSG_MANAGER_NETWORKER_CHAIN reply;
 
     std::copy_if(
         std::begin(chain),
         std::end(chain),
-        std::back_inserter(replyContents.chain),
+        std::back_inserter(reply.chain),
         [&contents](const Block& block)
         {
             return block.id <= contents.maxId;
         }
     );
-
-    Message replyMessage;
-    replyMessage.reqId = msg.reqId;
-    replyContents.compose(replyMessage);
     
-    connFromNetworker.sendMessage(replyMessage);
+    connFromNetworker.sendMessage(reply.msg(msg.reqId));
 }

@@ -83,10 +83,7 @@ void Miner::checkProof()
 
         MSG_MINER_MANAGER_PROOFOFWORK contents;
         contents.proofOfWork = proofValue;
-        Message msg;
-        contents.compose(msg);
-
-        connToManager.sendMessage(msg);
+        connToManager.sendMessage(contents.msg());
         return;
     }
 
@@ -110,8 +107,6 @@ void Miner::processManagerNewBaseHash(const Message& msg)
 void Miner::requestNewBaseHash()
 {
     log("Requesting new base hash");
-    MSG_MINER_MANAGER_HASHREQUEST hashRequest;
-    Message msg;
-    hashRequest.compose(msg);
-    connToManager.sendMessage(msg);
+    MSG_MINER_MANAGER_HASHREQUEST contents;
+    connToManager.sendMessage(contents.msg());
 }

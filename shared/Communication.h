@@ -110,10 +110,11 @@ struct Connection
         return next;
     }
     virtual void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) = 0;
+    virtual void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) = 0;
     virtual std::optional<Message> getMessage() = 0;
 };
 
-struct ServerConnection : Connection
+struct ServerConnection : public Connection
 {
     int serverFileDescriptor;
     std::vector<int> sockets;
@@ -194,6 +195,11 @@ struct ServerConnection : Connection
         }
     }
 
+    void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) override
+    {
+        sendMessage(msg, callback);
+    }
+
     void sendMessage(int socket, Message& msg, std::optional<Callback> callback = std::nullopt)
     {
         if(msg.reqId == 0)
@@ -235,7 +241,7 @@ struct ServerConnection : Connection
     }
 };
 
-struct ClientConnection : Connection
+struct ClientConnection : public Connection
 {
     int socketFileDescriptor;
 
@@ -292,6 +298,11 @@ struct ClientConnection : Connection
         }
 
         sendFinalMessage(socketFileDescriptor, msg);
+    }
+
+    void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) override
+    {
+        sendMessage(msg, callback);
     }
 
     std::optional<Message> getMessage() override

@@ -22,7 +22,7 @@ public:
 
     // Transactioner related
     void askTransactionerForNewTransactions();
-    void processTransactionRequestReply(Message& msg);
+    void processTransactionRequestReply(const Message& msg);
     
     // Miner related
     void sendBaseHashToMiners();
