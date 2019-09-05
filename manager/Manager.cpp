@@ -15,13 +15,10 @@ Manager::Manager(const char* iniFileName)
     connFromNetworker.init(strToIp(params.at("connFromNetworker")));
     registerServerConnection(&connFromNetworker);
 
-    registerScheduledTask(
-        1000,
-        [this]()
-        {
-            askTransactionerForNewTransactions();
-        }
-    );
+    registerScheduledTask(1000, [this]()
+    {
+        askTransactionerForNewTransactions();
+    });
 
     currentBaseHash = 12393939334343; // FAKE
 }
@@ -65,34 +62,27 @@ void Manager::askTransactionerForNewTransactions()
         return;
     }
 
-    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents;
-    contents.numOfTransactionsRequested = 200 - currentBlock.transactions.size();
-    connFromTransactioner.sendMessage(contents.msg(), [this](const Message& reply)
+    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
+    outgoing.numOfTransactionsRequested = 200 - currentBlock.transactions.size();
+    
+    connFromTransactioner.sendMessage(outgoing.msg(), [this](const Message& reply)
     {
         processTransactionRequestReply(reply);
     });
 
-    registerScheduledTask(
-        1000,
-        [this]()
-        {
-            askTransactionerForNewTransactions();
-        }
-    );
+    registerScheduledTask(1000, [this]()
+    {
+        askTransactionerForNewTransactions();
+    });
 }
 
 void Manager::processTransactionRequestReply(const Message& msg)
 {
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
-
-    log(
-        "processTransactionRequestReply recieved % transactions",
-        contents.transactions.size()
-    );
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
     
     std::move(
-        std::begin(contents.transactions),
-        std::end(contents.transactions),
+        std::begin(incoming.transactions),
+        std::end(incoming.transactions),
         std::back_inserter(currentBlock.transactions)
     );
 
@@ -109,10 +99,10 @@ void Manager::processTransactionRequestReply(const Message& msg)
 
 void Manager::sendBaseHashToMiners()
 {
-    MSG_MANAGER_MINER_NEWBASEHASH contents;
-    contents.newBaseHash = currentBaseHash;
+    MSG_MANAGER_MINER_NEWBASEHASH outgoing;
+    outgoing.newBaseHash = currentBaseHash;
 
-    connFromMiners.sendMessage(contents.msg());
+    connFromMiners.sendMessage(outgoing.msg());
 }
 
 void Manager::mintCurrency()
@@ -129,19 +119,18 @@ void Manager::mintCurrency()
 
 void Manager::processIncomingProofOfWork(const Message& msg)
 {
-    MSG_MINER_MANAGER_PROOFOFWORK contents{ msg };
-    log("MSG_MINER_MANAGER_PROOFOFWORK proof=%", contents.proofOfWork);
+    MSG_MINER_MANAGER_PROOFOFWORK incoming{ msg };
 
-    if(validProof(contents.proofOfWork, currentBaseHash))
+    if(validProof(incoming.proofOfWork, currentBaseHash))
     {
         log("Proof is valid, Block has been mined, Sending to Networker for Propagation.");
-        currentBlock.proofOfWork = contents.proofOfWork;
+        currentBlock.proofOfWork = incoming.proofOfWork;
 
         chain.push_back(currentBlock);
 
-        MSG_MANAGER_NETWORKER_NEWBLOCK blockContents;
-        blockContents.block = currentBlock;
-        connFromNetworker.sendMessage(blockContents.msg());
+        MSG_MANAGER_NETWORKER_NEWBLOCK outgoing;
+        outgoing.block = currentBlock;
+        connFromNetworker.sendMessage(outgoing.msg());
         
         log("Starting work on next block.");
         
@@ -159,31 +148,27 @@ void Manager::processIncomingProofOfWork(const Message& msg)
 
 void Manager::processMinerHashRequest(const Message& msg)
 {
-    log("MSG_MINER_MANAGER_HASHREQUEST");
+    MSG_MANAGER_MINER_NEWBASEHASH outgoing;
+    outgoing.newBaseHash = currentBaseHash;
 
-    MSG_MANAGER_MINER_NEWBASEHASH contents;
-    contents.newBaseHash = currentBaseHash;
-    Message hashMsg;
-    contents.compose(hashMsg);
-    connFromMiners.sendMessage(msg.socket, hashMsg);
+    connFromMiners.sendMessage(msg.socket, outgoing.msg());
 }
 
 void Manager::processPotentialWinningBlock(const Message& msg)
 {
-    MSG_NETWORKER_MANAGER_NEWBLOCK contents{ msg };
-    log("Received Potential New Winning Block");
+    MSG_NETWORKER_MANAGER_NEWBLOCK incoming{ msg };
 
-    if(currentBlock.id > contents.block.id)
+    if(currentBlock.id > incoming.block.id)
     {
         log("Block id is lower than ours; ignore");
         return;
     }
 
-    MSG_MANAGER_NETWORKER_CHAINREQUEST reply;
-    reply.maxId = contents.block.id;
-    reply.connId = contents.connId;
+    MSG_MANAGER_NETWORKER_CHAINREQUEST outgoing;
+    outgoing.maxId = incoming.block.id;
+    outgoing.connId = incoming.connId;
 
-    connFromNetworker.sendMessage(reply.msg(), [this](const Message& msg)
+    connFromNetworker.sendMessage(outgoing.msg(), [this](const Message& msg)
     {
         processPotentialWinningBlock_ChainReply(msg);
     });
@@ -191,16 +176,12 @@ void Manager::processPotentialWinningBlock(const Message& msg)
 
 void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
 {
-    MSG_NETWORKER_NETWORKER_CHAIN contents{ msg };
-    log(
-        "Received potential replacement chain, length: %",
-        contents.chain.size()
-    );
+    MSG_NETWORKER_NETWORKER_CHAIN incoming{ msg };
 
     std::optional<u64> hashOfLastBlock;
     std::set<u64> transactionHashes;
 
-    for(Block& block : contents.chain)
+    for(Block& block : incoming.chain)
     {
         if(!block.isValid())
         {
@@ -225,7 +206,7 @@ void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
         }
     }
 
-    chain = std::move(contents.chain);
+    chain = std::move(incoming.chain);
 }
 
 void Manager::processPotentialWinningBlock_Finalize(const std::set<u64>& transactionHashes)
@@ -251,19 +232,19 @@ void Manager::processPotentialWinningBlock_Finalize(const std::set<u64>& transac
 
 void Manager::processNetworkerChainRequest(const Message& msg)
 {
-    MSG_NETWORKER_MANAGER_CHAINREQUEST contents{ msg };
+    MSG_NETWORKER_MANAGER_CHAINREQUEST incoming{ msg };
 
-    MSG_MANAGER_NETWORKER_CHAIN reply;
+    MSG_MANAGER_NETWORKER_CHAIN outgoing;
 
     std::copy_if(
         std::begin(chain),
         std::end(chain),
-        std::back_inserter(reply.chain),
-        [&contents](const Block& block)
+        std::back_inserter(outgoing.chain),
+        [maxId = incoming.maxId](const Block& block)
         {
-            return block.id <= contents.maxId;
+            return block.id <= maxId;
         }
     );
     
-    connFromNetworker.sendMessage(reply.msg(msg.reqId));
+    connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
 }

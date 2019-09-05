@@ -214,6 +214,11 @@ struct ServerConnection : public Connection
         sendFinalMessage(socket, msg);
     }
 
+    void sendMessage(int socket, Message&& msg, std::optional<Callback> callback = std::nullopt)
+    {
+        sendMessage(socket, msg, callback);
+    }
+
     std::optional<Message> getMessage()
     {
         for(int socket : sockets)

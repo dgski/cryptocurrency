@@ -21,11 +21,11 @@ int main()
             t.amount = 10;
             t.signature = "SIGNATURE";
 
-            MSG_CLIENT_TRANSACTIONER_NEWTRANS contents;
-            contents.transaction = t;
+            MSG_CLIENT_TRANSACTIONER_NEWTRANS outgoing;
+            outgoing.transaction = t;
             
             Message msg;
-            contents.compose(msg);
+            outgoing.compose(msg);
 
             connToTransactioner.sendMessage(msg);
         }

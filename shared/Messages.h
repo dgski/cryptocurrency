@@ -81,6 +81,15 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
         msg.id = id;
         msg.compose_u64(proofOfWork);
     }
+
+    void logMsg() const
+    {
+        log(
+            "MSG_MINER_MANAGER_PROOFOFWORK"
+            "{ proofOfWork:% }",
+            proofOfWork
+        );
+    }
 };
 
 struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
@@ -128,6 +137,7 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
     {
         Parser parser(msg);
         parse(parser);
+        logMsg();
     }
 
     void parse(Parser& parser) override
@@ -149,6 +159,15 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
         {
             t.compose(msg);
         }
+    }
+
+    void logMsg() const
+    {
+        log(
+            "MSG_A_MANAGER_TRANSACTIONER_TRANSREQ"
+            "{ transactions:% }",
+            transactions.size()
+        );
     }
 };
 
@@ -328,6 +347,7 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
     {
         Parser parser(msg);
         parse(parser);
+        logMsg();
     }
 
     void parse(Parser& parser) override
@@ -341,6 +361,15 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
         msg.id = id;
         block.compose(msg);
         msg.compose_i32(connId);
+    }
+
+    void logMsg() const
+    {
+        log(
+            "MSG_NETWORKER_MANAGER_NEWBLOCK"
+            "{ block:{}, connId:% }",
+            connId
+        );
     }
 };
 
@@ -515,6 +544,7 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
     {
         Parser parser(msg);
         parse(parser);
+        logMsg();
     }
 
     void parse(Parser& parser) override
@@ -536,5 +566,14 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
         {
             b.compose(msg);
         }
+    }
+
+    void logMsg() const
+    {
+        log(
+            "MSG_NETWORKER_NETWORKER_CHAIN"
+            "{ chain.size:% }",
+            chain.size()
+        );
     }
 };

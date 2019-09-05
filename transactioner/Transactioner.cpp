@@ -37,42 +37,42 @@ void Transactioner::processMessage(const Message& msg)
 
 void Transactioner::processRequestForTransactions(const Message& msg)
 {
-    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ contents{ msg };
+    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
 
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ reply;
+    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
 
     if(waitingTransactions.empty())
     {
         log("No waiting transactions");
     }
-    else if(waitingTransactions.size() <= contents.numOfTransactionsRequested)
+    else if(waitingTransactions.size() <= incoming.numOfTransactionsRequested)
     {
-        reply.transactions = std::move(waitingTransactions);
+        outgoing.transactions = std::move(waitingTransactions);
         waitingTransactions.clear();
     }
     else
     {            
         std::move(
             std::begin(waitingTransactions),
-            std::begin(waitingTransactions) + contents.numOfTransactionsRequested,
-            std::back_inserter(reply.transactions)
+            std::begin(waitingTransactions) + incoming.numOfTransactionsRequested,
+            std::back_inserter(outgoing.transactions)
         );
 
         waitingTransactions.erase(
             std::begin(waitingTransactions),
-            std::begin(waitingTransactions) + contents.numOfTransactionsRequested
+            std::begin(waitingTransactions) + incoming.numOfTransactionsRequested
         );
     }
     
-    log("Sending % transactions to Manager", reply.transactions.size());
-    connToManager.sendMessage(reply.msg());
+    log("Sending % transactions to Manager", outgoing.transactions.size());
+    connToManager.sendMessage(outgoing.msg());
 }
 
 void Transactioner::processAddNewTransaction(const Message& msg)
 {
-    MSG_CLIENT_TRANSACTIONER_NEWTRANS contents{ msg };
+    MSG_CLIENT_TRANSACTIONER_NEWTRANS incoming{ msg };
 
-    if(!isTransactionSignatureValid(contents.transaction))
+    if(!isTransactionSignatureValid(incoming.transaction))
     {
         log("Transaction Signature Invalid.");
         return;
@@ -81,7 +81,7 @@ void Transactioner::processAddNewTransaction(const Message& msg)
     // Second: Check if account has enough funds
 
     log("Adding transaction");
-    waitingTransactions.push_back(contents.transaction);
+    waitingTransactions.push_back(incoming.transaction);
     
     log("Total waiting transactions=%", waitingTransactions.size());
 }
