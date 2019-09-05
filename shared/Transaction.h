@@ -25,7 +25,7 @@ struct Transaction
             .parse_str(signature);
     }
 
-    void compose(Message& msg)
+    void compose(Message& msg) const
     {
         msg
             .compose_u64(time)

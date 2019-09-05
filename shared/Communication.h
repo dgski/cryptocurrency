@@ -34,7 +34,7 @@ struct Message
         return *this;
     }
 
-    Message& compose_str(str& val)
+    Message& compose_str(const str& val)
     {
         data.resize(data.size() + val.size() + 1);
         memcpy(data.data() + size, val.c_str(), val.size() + 1);

@@ -40,7 +40,7 @@ struct Block
         }
     }
 
-    void compose(Message& msg)
+    void compose(Message& msg) const
     {
         msg
             .compose_u64(id)
@@ -48,7 +48,7 @@ struct Block
             .compose_u64(proofOfWork);
 
         msg.compose_u64((u64)transactions.size());
-        for(Transaction& t : transactions)
+        for(const Transaction& t : transactions)
         {
             t.compose(msg);
         }
