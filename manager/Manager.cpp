@@ -178,35 +178,17 @@ void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
 {
     MSG_NETWORKER_NETWORKER_CHAIN incoming{ msg };
 
-    std::optional<u64> hashOfLastBlock;
-    std::set<u64> transactionHashes;
-
-    for(Block& block : incoming.chain)
+    auto transactionHashes = getValidTransHashes(incoming.chain);
+    if(!transactionHashes.has_value())
     {
-        if(!block.isValid())
-        {
-            log("Chain is invalid. Aborting");
-            return;
-        }
-
-        if(!hashOfLastBlock.has_value())
-        {
-            hashOfLastBlock = block.calculateFullHash();
-        }
-        else if(block.hashOfLastBlock != hashOfLastBlock)
-        {
-            log("Logical error: hashOfLastBlock does not match.");
-            log("Chain is invalid. Aborting");
-            return;
-        }
-
-        for(Transaction& t : block.transactions)
-        {
-            transactionHashes.insert(std::hash<Transaction>{}(t));
-        }
+        log("Chain is not valid. Aborting.");
+        return;
     }
-
+    
+    log("Chain is valid. Using it from now on.");
     chain = std::move(incoming.chain);
+    
+    processPotentialWinningBlock_Finalize(transactionHashes.value());
 }
 
 void Manager::processPotentialWinningBlock_Finalize(const std::set<u64>& transactionHashes)
@@ -247,4 +229,37 @@ void Manager::processNetworkerChainRequest(const Message& msg)
     );
     
     connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
+}
+
+std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& chain)
+{
+    std::optional<u64> hashOfLastBlock;
+    std::set<u64> transactionHashes;
+
+    for(Block& block : chain)
+    {
+        if(!block.isValid())
+        {
+            log("Block is invalid. Aborting");
+            return std::nullopt;
+        }
+
+        if(!hashOfLastBlock.has_value())
+        {
+            hashOfLastBlock = block.calculateFullHash();
+        }
+        else if(block.hashOfLastBlock != hashOfLastBlock)
+        {
+            log("Logical error: hashOfLastBlock does not match.");
+            log("Block is invalid. Aborting");
+            return std::nullopt;
+        }
+
+        for(Transaction& t : block.transactions)
+        {
+            transactionHashes.insert(std::hash<Transaction>{}(t));
+        }
+    }
+
+    return transactionHashes;
 }

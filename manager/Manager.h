@@ -34,4 +34,6 @@ public:
     void processPotentialWinningBlock_ChainReply(const Message& msg);
     void processPotentialWinningBlock_Finalize(const std::set<u64>& transactionHashes);
     void processNetworkerChainRequest(const Message& msg);
+
+    static std::optional<std::set<u64>> getValidTransHashes(std::vector<Block>& chain);
 };
