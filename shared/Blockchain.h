@@ -29,15 +29,8 @@ struct Block
         parser
             .parse_u64(id)
             .parse_u64(hashOfLastBlock)
-            .parse_u64(proofOfWork);
-
-        u64 size;
-        parser.parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& t = transactions.emplace_back();
-            t.parse(parser);
-        }
+            .parse_u64(proofOfWork)
+            .parse_col(transactions);
     }
 
     void compose(Message& msg) const
@@ -45,13 +38,8 @@ struct Block
         msg
             .compose_u64(id)
             .compose_u64(hashOfLastBlock)
-            .compose_u64(proofOfWork);
-
-        msg.compose_u64((u64)transactions.size());
-        for(const Transaction& t : transactions)
-        {
-            t.compose(msg);
-        }
+            .compose_u64(proofOfWork)
+            .compose_col(transactions);
     }
 
     bool isValid()

@@ -144,23 +144,13 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        u64 size;
-        parser.parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& t = transactions.emplace_back();
-            t.parse(parser);
-        }
+        parser.parse_col(transactions);
     }
 
     void compose(Message& msg) override
     {
         msg.id = id;
-        msg.compose_u64((u64)transactions.size());
-        for(Transaction& t : transactions)
-        {
-            t.compose(msg);
-        }
+        msg.compose_col(transactions);
     }
 
     void logMsg() const override
@@ -508,23 +498,13 @@ struct MSG_MANAGER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        u64 size;
-        parser.parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& b = chain.emplace_back();
-            b.parse(parser);
-        }
+        parser.parse_col(chain);
     }
 
     void compose(Message& msg) override
     {
         msg.id = id;
-        msg.compose_u64((u64)chain.size());
-        for(Block& b : chain)
-        {
-            b.compose(msg);
-        }
+        msg.compose_col(chain);
     }
 
     void logMsg() const override
@@ -553,24 +533,14 @@ struct MSG_NETWORKER_MANAGER_CHAIN : public MSG_STRUCT
     }
 
     void parse(Parser& parser) override
-    {        
-        u64 size;
-        parser.parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& b = chain.emplace_back();
-            b.parse(parser);
-        }
+    {
+        parser.parse_col(chain);
     }
 
     void compose(Message& msg) override
     {
         msg.id = id;
-        msg.compose_u64((u64)chain.size());
-        for(Block& b : chain)
-        {
-            b.compose(msg);
-        }
+        msg.compose_col(chain);
     }
 
     void logMsg() const override
@@ -600,23 +570,13 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        u64 size;
-        parser.parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& b = chain.emplace_back();
-            b.parse(parser);
-        }
+        parser.parse_col(chain);
     }
 
     void compose(Message& msg) override
     {
         msg.id = id;
-        msg.compose_u64((u64)chain.size());
-        for(Block& b : chain)
-        {
-            b.compose(msg);
-        }
+        msg.compose_col(chain);
     }
 
     void logMsg() const override

@@ -52,6 +52,18 @@ struct Message
         return *this;
     }
 
+    template<typename Col>
+    Message& compose_col(const Col& col)
+    {
+        compose_u64((u64)col.size());
+        for(const auto& c : col)
+        {
+            c.compose(*this);
+        }
+
+        return *this;
+    }
+
     size_t getFullSize() const
     {
         return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
@@ -85,6 +97,20 @@ struct Parser
     {
         val = *(i32*)ptr;
         ptr += sizeof(i32);
+        return *this;
+    }
+
+    template<typename Col>
+    Parser& parse_col(Col& col)
+    {   
+        u64 size;
+        parse_u64(size);
+        for(u64 i{ 0 }; i < size; ++i)
+        {
+            auto& c = col.emplace_back();
+            c.parse(*this);
+        }
+
         return *this;
     }
 };
