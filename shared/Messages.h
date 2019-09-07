@@ -97,7 +97,7 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
 struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 {
     constexpr static u32 id = 2;
-    u64 numOfTransactionsRequested;
+    u64 numOfTransReq;
 
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(){}
 
@@ -110,20 +110,21 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_u64(numOfTransactionsRequested);
+        parser.parse_u64(numOfTransReq);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_u64(numOfTransactionsRequested);
+        msg.compose_u64(numOfTransReq);
     }
 
     void logMsg() const override
     {
         log(
-            "MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ numOfTransactionsRequested=%",
-            numOfTransactionsRequested
+            "MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ"
+            "{ numOfTransReq:% }",
+            numOfTransReq
         );
     }
 };

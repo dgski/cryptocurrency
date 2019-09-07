@@ -7,6 +7,7 @@
 #include <functional>
 #include <set>
 #include <list>
+#include <variant>
 
 #include "../shared/Types.h"
 #include "../shared/Utils.h"
@@ -23,7 +24,7 @@ struct ScheduledTask
 
 class Module
 {
-    std::vector<ServerConnection*> serverConnnections;
+    std::vector<ServerConnection*> serverConnections;
     std::vector<ClientConnection*> clientConnections;
     std::list<ScheduledTask> scheduledTasks;
 public:
@@ -32,12 +33,27 @@ public:
 
     void registerServerConnection(ServerConnection* conn)
     {
-        serverConnnections.push_back(conn);
+        serverConnections.push_back(conn);
     }
 
     void registerClientConnection(ClientConnection* conn)
     {
         clientConnections.push_back(conn);
+    }
+
+    void registerConnections(std::initializer_list<std::variant<ClientConnection*, ServerConnection*>> conns)
+    {
+        for(auto conn : conns)
+        {
+            if(std::holds_alternative<ClientConnection*>(conn))
+            {
+                clientConnections.push_back(std::get<ClientConnection*>(conn));
+            }
+            else
+            {
+                serverConnections.push_back(std::get<ServerConnection*>(conn));
+            }
+        }
     }
 
     template<typename F>

@@ -7,7 +7,7 @@ Miner::Miner(const char* iniFileName)
     const std::map<str,str> params = getInitParameters(iniFileName);
 
     connToManager.init(strToIp(params.at("connToManager")));
-    registerClientConnection(&connToManager);
+    registerConnections({&connToManager});
 
     incrementSize = atoi(params.at("incrementSize").c_str());
 

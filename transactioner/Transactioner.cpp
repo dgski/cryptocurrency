@@ -7,10 +7,8 @@ Transactioner::Transactioner(const char* iniFileName)
     const std::map<str,str> params = getInitParameters(iniFileName);
 
     connToManager.init(strToIp(params.at("connToManager")));
-    registerClientConnection(&connToManager);
-
     connFromClients.init(strToIp(params.at("connFromClients")));
-    registerServerConnection(&connFromClients);
+    registerConnections({&connToManager, &connFromClients});
 }
 
 void Transactioner::processMessage(const Message& msg)
@@ -40,12 +38,11 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
 
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
-
     if(waitingTransactions.empty())
     {
         log("No waiting transactions");
     }
-    else if(waitingTransactions.size() <= incoming.numOfTransactionsRequested)
+    else if(waitingTransactions.size() <= incoming.numOfTransReq)
     {
         outgoing.transactions = std::move(waitingTransactions);
         waitingTransactions.clear();
@@ -54,13 +51,13 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     {            
         std::move(
             std::begin(waitingTransactions),
-            std::begin(waitingTransactions) + incoming.numOfTransactionsRequested,
+            std::begin(waitingTransactions) + incoming.numOfTransReq,
             std::back_inserter(outgoing.transactions)
         );
 
         waitingTransactions.erase(
             std::begin(waitingTransactions),
-            std::begin(waitingTransactions) + incoming.numOfTransactionsRequested
+            std::begin(waitingTransactions) + incoming.numOfTransReq
         );
     }
     

@@ -7,10 +7,8 @@ Networker::Networker(const char* iniFileName)
     const std::map<str,str> params = getInitParameters(iniFileName);
 
     connToManager.init(strToIp(params.at("connToManager")));
-    registerClientConnection(&connToManager);
-
     connFromOtherNodes.init(strToIp(params.at("connFromOtherNodes")));
-    registerServerConnection(&connFromOtherNodes);
+    registerConnections({&connToManager, &connFromOtherNodes});
 
     const auto connStrings = splitStr(params.at("connsToOtherNodes"));
     for(const str& connString : connStrings)
@@ -21,7 +19,7 @@ Networker::Networker(const char* iniFileName)
 
         MSG_NETWORKER_NETWORKER_REGISTERME outgoing;
         outgoing.connStr = params.at("connFromOtherNodes");
-        newConn.sendMessage(outgoing.msg()); // TODO Safety
+        newConn.sendMessage(outgoing.msg());
     }
 }
 

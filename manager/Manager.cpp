@@ -7,13 +7,9 @@ Manager::Manager(const char* iniFileName)
     const std::map<str,str> params = getInitParameters(iniFileName);
 
     connFromMiners.init(strToIp(params.at("connFromMiners")));
-    registerServerConnection(&connFromMiners);
-
     connFromTransactioner.init(strToIp(params.at("connFromTransactioner")));
-    registerServerConnection(&connFromTransactioner);
-
     connFromNetworker.init(strToIp(params.at("connFromNetworker")));
-    registerServerConnection(&connFromNetworker);
+    registerConnections({&connFromMiners, &connFromTransactioner, &connFromNetworker});
 
     registerScheduledTask(1000, [this]()
     {
@@ -63,7 +59,7 @@ void Manager::askTransactionerForNewTransactions()
     }
 
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
-    outgoing.numOfTransactionsRequested = 200 - currentBlock.transactions.size();
+    outgoing.numOfTransReq = 200 - currentBlock.transactions.size();
     
     connFromTransactioner.sendMessage(outgoing.msg(), [this](const Message& reply)
     {
@@ -187,7 +183,7 @@ void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
     
     log("Chain is valid. Using it from now on.");
     chain = std::move(incoming.chain);
-    
+
     processPotentialWinningBlock_Finalize(transactionHashes.value());
 }
 

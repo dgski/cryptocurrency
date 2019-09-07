@@ -1,5 +1,3 @@
-#include <list>
-
 #include "../shared/Module.h"
 
 class Transactioner : public Module

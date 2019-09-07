@@ -4,7 +4,7 @@ void Module::run()
 {
     while(true)
     {
-        for(ServerConnection* s : serverConnnections)
+        for(ServerConnection* s : serverConnections)
         {
             s->acceptNewConnections();
             std::optional<Message> msg = s->getMessage();

@@ -16,8 +16,9 @@
 #include "Types.h"
 #include "Utils.h"
 
-struct Message
+class Message
 {
+public:
     int socket;
 
     u32 id = 0;
@@ -70,9 +71,10 @@ struct Message
     }
 };
 
-struct Parser
+class Parser
 {
     const byte* ptr;
+public:
     Parser(const Message& msg)
     {
         ptr = msg.data.data();
@@ -120,8 +122,9 @@ void sendFinalMessage(int socket, Message& msg);
 
 using Callback = std::function<void(Message&)>;
 
-struct Connection
+class Connection
 {
+protected:
     u32 nextReqId = 1;
     std::unordered_map<u32,Callback> callbacks;
 
@@ -135,17 +138,20 @@ struct Connection
 
         return next;
     }
+
+public:
     virtual void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) = 0;
     virtual void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) = 0;
     virtual std::optional<Message> getMessage() = 0;
 };
 
-struct ServerConnection : public Connection
+class ServerConnection : public Connection
 {
     int serverFileDescriptor;
     std::vector<int> sockets;
     sockaddr_in address;
 
+public:
     void init(const IpInfo& ip)
     {
         log("Initializing ServerConnection address=%, port=%", ip.address, ip.port);
@@ -272,10 +278,11 @@ struct ServerConnection : public Connection
     }
 };
 
-struct ClientConnection : public Connection
+class ClientConnection : public Connection
 {
     int socketFileDescriptor;
 
+public:
     void init(const IpInfo& ip)
     {
         log("Initializing ClientConnection address=%, port=%", ip.address, ip.port);
