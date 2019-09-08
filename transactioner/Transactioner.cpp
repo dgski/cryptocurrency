@@ -44,20 +44,18 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     }
     else if(waitingTransactions.size() <= incoming.numOfTransReq)
     {
-        outgoing.transactions = std::move(waitingTransactions);
-        waitingTransactions.clear();
+        outgoing.transactions.splice(
+            std::cbegin(outgoing.transactions),
+            waitingTransactions
+        );
     }
     else
-    {            
-        std::move(
-            std::begin(waitingTransactions),
-            std::begin(waitingTransactions) + incoming.numOfTransReq,
-            std::back_inserter(outgoing.transactions)
-        );
-
-        waitingTransactions.erase(
-            std::begin(waitingTransactions),
-            std::begin(waitingTransactions) + incoming.numOfTransReq
+    {
+        outgoing.transactions.splice(
+            std::cbegin(outgoing.transactions),
+            waitingTransactions,
+            std::cbegin(waitingTransactions),
+            std::next(std::cbegin(waitingTransactions), incoming.numOfTransReq)
         );
     }
     

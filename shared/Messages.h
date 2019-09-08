@@ -1,3 +1,5 @@
+#include <list>
+
 #include "Types.h"
 #include "Communication.h"
 #include "Transaction.h"
@@ -132,7 +134,7 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 {
     constexpr static u32 id = 3;
-    std::vector<Transaction> transactions;
+    std::list<Transaction> transactions;
 
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(){}
 

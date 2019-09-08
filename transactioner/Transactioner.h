@@ -5,7 +5,7 @@ class Transactioner : public Module
     ClientConnection connToManager;
     ServerConnection connFromClients;
 
-    std::vector<Transaction> waitingTransactions;
+    std::list<Transaction> waitingTransactions;
 
 public:
     Transactioner(const char* iniFileName);
