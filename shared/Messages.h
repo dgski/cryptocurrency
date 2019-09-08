@@ -596,7 +596,7 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET : public MSG_STRUCT
 {
     constexpr static u32 id = 15;
     
-    str publicWalletKey = 0;
+    str publicWalletKey;
 
     MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET(){}
 

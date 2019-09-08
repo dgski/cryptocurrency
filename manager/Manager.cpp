@@ -43,6 +43,10 @@ void Manager::processMessage(const Message& msg)
             processNetworkerChainRequest(msg);
             return;
         }
+        case MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET::id:
+        {
+            processTransactionWalletInquiry(msg);
+        }
         default:
         {
             log("Unhandled MSG id=%", msg.id);
@@ -91,6 +95,16 @@ void Manager::processTransactionRequestReply(const Message& msg)
     }
 
     return;
+}
+
+void Manager::processTransactionWalletInquiry(const Message& msg)
+{
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET incoming{ msg };
+
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY outgoing;
+    auto it = wallets.find(incoming.publicWalletKey);
+    outgoing.amount = (it != wallets.end()) ? it->second : 0;
+    connFromTransactioner.sendMessage(outgoing.msg(msg.reqId));
 }
 
 void Manager::sendBaseHashToMiners()

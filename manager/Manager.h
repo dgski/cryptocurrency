@@ -5,6 +5,7 @@
 class Manager : public Module
 {
     std::vector<Block> chain;
+    std::map<str, u64> wallets; // TODO: update wallet on block updates
 
     Block currentBlock;
     u64 currentBaseHash;
@@ -23,6 +24,7 @@ public:
     // Transactioner related
     void askTransactionerForNewTransactions();
     void processTransactionRequestReply(const Message& msg);
+    void processTransactionWalletInquiry(const Message& msg);
     
     // Miner related
     void sendBaseHashToMiners();
