@@ -69,14 +69,29 @@ void Transactioner::processAddNewTransaction(const Message& msg)
 
     if(!isTransactionSignatureValid(incoming.transaction))
     {
-        log("Transaction Signature Invalid.");
+        log("Signature Invalid. Rejecting Transaction.");
         return;
     }
 
-    // Second: Check if account has enough funds
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET outgoing;
+    outgoing.publicWalletKey = incoming.transaction.sender;
+    connToManager.sendMessage(outgoing.msg(), [this, transaction = incoming.transaction](const Message& msg)
+    {
+        processAddNewTransaction_Step2(msg, transaction);
+    });
+}
 
-    log("Adding transaction");
-    waitingTransactions.push_back(incoming.transaction);
+void Transactioner::processAddNewTransaction_Step2(const Message& msg, const Transaction& transaction)
+{
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY incoming{ msg };
+
+    if(transaction.amount > incoming.amount)
+    {
+        log("Not enough funds in wallet. Rejecting Transaction.");
+        return;
+    }
     
+    log("Adding transaction");
+    waitingTransactions.push_back(transaction);
     log("Total waiting transactions=%", waitingTransactions.size());
 }

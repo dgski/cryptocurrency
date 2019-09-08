@@ -591,3 +591,75 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
         );
     }
 };
+
+struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET : public MSG_STRUCT
+{
+    constexpr static u32 id = 15;
+    
+    str publicWalletKey = 0;
+
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET(){}
+
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+        logMsg();
+    }
+
+    void parse(Parser& parser) override
+    {
+        parser.parse_str(publicWalletKey);
+    }
+
+    void compose(Message& msg) const override
+    {
+        msg.id = id;
+        msg.compose_str(publicWalletKey);
+    }
+
+    void logMsg() const override
+    {
+        log(
+          "MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET"
+          "{ publicWalletKey:% }",
+          publicWalletKey
+        );
+    }
+};
+
+struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY : public MSG_STRUCT
+{
+    constexpr static u32 id = 16;
+    
+    u64 amount = 0;
+
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY(){}
+
+    MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+        logMsg();
+    }
+
+    void parse(Parser& parser) override
+    {
+        parser.parse_u64(amount);
+    }
+
+    void compose(Message& msg) const override
+    {
+        msg.id = id;
+        msg.compose_u64(amount);
+    }
+
+    void logMsg() const override
+    {
+        log(
+          "MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET"
+          "{ amount:% }",
+          amount
+        );
+    }
+};
