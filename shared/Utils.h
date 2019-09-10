@@ -36,12 +36,6 @@ public:
     }
 };
 
-template<typename T>
-class Protected
-{
-    
-};
-
 std::map<str, str> getInitParameters(const char* fileName);
 
 template<typename T>

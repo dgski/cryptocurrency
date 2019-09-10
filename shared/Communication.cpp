@@ -41,10 +41,9 @@ std::optional<Message> getFinalMessage(int socket)
     return msg;
 }
 
-void sendFinalMessage(int socket, Message& msg)
+void sendFinalMessage(int socket, const Message& msg)
 {
-    std::vector<byte> buffer;
-    buffer.resize(msg.getFullSize());
+    std::vector<byte> buffer(msg.getFullSize());
     
     memcpy(buffer.data(), &msg.id, 4);
     memcpy(buffer.data() + 4, &msg.reqId, 4);

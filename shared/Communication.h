@@ -118,7 +118,7 @@ public:
 };
 
 std::optional<Message> getFinalMessage(int socket);
-void sendFinalMessage(int socket, Message& msg);
+void sendFinalMessage(int socket, const Message& msg);
 
 using Callback = std::function<void(Message&)>;
 

@@ -77,11 +77,11 @@ void Transactioner::processAddNewTransaction(const Message& msg)
     outgoing.publicWalletKey = incoming.transaction.sender;
     connToManager.sendMessage(outgoing.msg(), [this, transaction = incoming.transaction](const Message& msg)
     {
-        processAddNewTransaction_Step2(msg, transaction);
+        processAddNewTransaction_Finalize(msg, transaction);
     });
 }
 
-void Transactioner::processAddNewTransaction_Step2(const Message& msg, const Transaction& transaction)
+void Transactioner::processAddNewTransaction_Finalize(const Message& msg, const Transaction& transaction)
 {
     MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY incoming{ msg };
 
