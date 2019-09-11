@@ -65,6 +65,40 @@ public:
         return *this;
     }
 
+    void compose_val(u64 val)
+    {
+        compose_u64(val);
+    }
+
+    void compose_val(const str& val)
+    {
+        compose_str(val);
+    }
+
+    void compose_val(i32 val)
+    {
+        compose_i32(val);
+    }
+    
+    template<typename T>
+    void compose_val(const T& t)
+    {
+        t.compose(*this);
+    }
+
+    template<typename Type>
+    void compose(Type item)
+    {
+        compose_val(item);
+    }
+
+    template<typename Type, typename... Types>
+    void compose(Type& item, Types& ...items)
+    {
+        compose_val(item);
+        compose(items...);
+    }
+
     size_t getFullSize() const
     {
         return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();

@@ -50,7 +50,7 @@ struct MSG_MANAGER_MINER_NEWBASEHASH : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_u64(newBaseHash);
+        msg.compose(newBaseHash);
     }
 
     void logMsg() const override
@@ -83,7 +83,7 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_u64(proofOfWork);
+        msg.compose(proofOfWork);
     }
 
     void logMsg() const override
@@ -118,7 +118,7 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_u64(numOfTransReq);
+        msg.compose(numOfTransReq);
     }
 
     void logMsg() const override
@@ -188,7 +188,7 @@ struct MSG_CLIENT_TRANSACTIONER_NEWTRANS : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        transaction.compose(msg);
+        msg.compose(transaction);
     }
 
     void logMsg() const override
@@ -251,7 +251,7 @@ struct MSG_MANAGER_NETWORKER_NEWBLOCK : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        block.compose(msg);
+        msg.compose(block);
     }
 
     void logMsg() const override
@@ -288,7 +288,7 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        block.compose(msg);
+        msg.compose(block);
     }
 
     void logMsg() const override
@@ -325,7 +325,7 @@ struct MSG_NETWORKER_NETWORKER_REGISTERME : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_str(connStr);
+        msg.compose(connStr);
     }
 
     void logMsg() const override
@@ -363,8 +363,7 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        block.compose(msg);
-        msg.compose_i32(connId);
+        msg.compose(block, connId);
     }
 
     void logMsg() const override
@@ -400,7 +399,7 @@ struct MSG_MANAGER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void compose(Message& msg) const override
     {
-        msg.compose_u64(maxId);
+        msg.compose(maxId);
     }
 
     void logMsg() const override
@@ -436,7 +435,7 @@ struct MSG_NETWORKER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void compose(Message& msg) const override
     {
-        msg.compose_u64(maxId);
+        msg.compose(maxId);
     }
 
     void logMsg() const override
@@ -471,7 +470,7 @@ struct MSG_NETWORKER_MANAGER_CHAINREQUEST : public MSG_STRUCT
 
     void compose(Message& msg) const override
     {
-        msg.compose_u64(maxId);
+        msg.compose(maxId);
     }
 
     void logMsg() const override
@@ -615,7 +614,7 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_str(publicWalletKey);
+        msg.compose(publicWalletKey);
     }
 
     void logMsg() const override
@@ -651,7 +650,7 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY : public MSG_STRUCT
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_u64(amount);
+        msg.compose(amount);
     }
 
     void logMsg() const override
