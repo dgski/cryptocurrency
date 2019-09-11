@@ -5,9 +5,11 @@
 class Manager : public Module
 {
     std::vector<Block> chain;
-    std::map<str, u64> wallets; // TODO: update wallet on block updates
+    std::map<str, u64> wallets;
 
     Block currentBlock;
+    std::map<str, i64> currentBlockWalletDeltas;
+
     u64 currentBaseHash;
 
     ServerConnection connFromMiners;
@@ -24,6 +26,7 @@ public:
     // Transactioner related
     void askTransactionerForNewTransactions();
     void processTransactionRequestReply(const Message& msg);
+    void addTransactionToCurrentBlock(Transaction& t);
     void processTransactionWalletInquiry(const Message& msg);
     
     // Miner related
@@ -38,4 +41,6 @@ public:
     void processNetworkerChainRequest(const Message& msg);
 
     static std::optional<std::set<u64>> getValidTransHashes(std::vector<Block>& chain);
+
+    void pushBlock(Block& block);
 };

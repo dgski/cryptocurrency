@@ -80,11 +80,10 @@ void Manager::processTransactionRequestReply(const Message& msg)
 {
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
     
-    std::move(
-        std::begin(incoming.transactions),
-        std::end(incoming.transactions),
-        std::back_inserter(currentBlock.transactions)
-    );
+    for(Transaction& t : incoming.transactions)
+    {
+        addTransactionToCurrentBlock(t);
+    }
 
     u64 newBaseHash = currentBlock.calculateBaseHash();
     if(newBaseHash != currentBaseHash)
@@ -97,6 +96,25 @@ void Manager::processTransactionRequestReply(const Message& msg)
     return;
 }
 
+void Manager::addTransactionToCurrentBlock(Transaction& t)
+{
+    auto itSender = currentBlockWalletDeltas.find(t.sender);
+    if(itSender == currentBlockWalletDeltas.end())
+    {
+        currentBlockWalletDeltas.emplace(t.sender, 0);
+    }
+    currentBlockWalletDeltas.at(t.sender) -= t.amount;
+
+    auto itRecipiant = currentBlockWalletDeltas.find(t.recipiant);
+    if(itRecipiant == currentBlockWalletDeltas.end())
+    {
+        currentBlockWalletDeltas.emplace(t.recipiant, 0);
+    }
+    currentBlockWalletDeltas.at(t.recipiant) += t.amount;
+
+    currentBlock.transactions.push_back(t);
+}
+
 void Manager::processTransactionWalletInquiry(const Message& msg)
 {
     MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET incoming{ msg };
@@ -104,6 +122,13 @@ void Manager::processTransactionWalletInquiry(const Message& msg)
     MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY outgoing;
     auto it = wallets.find(incoming.publicWalletKey);
     outgoing.amount = (it != wallets.end()) ? it->second : 0;
+
+    auto blockIt = currentBlockWalletDeltas.find(incoming.publicWalletKey);
+    outgoing.amount +=
+        (blockIt != currentBlockWalletDeltas.end()) ?
+        blockIt->second :
+        0;
+
     connFromTransactioner.sendMessage(outgoing.msg(msg.reqId));
 }
 
@@ -136,7 +161,8 @@ void Manager::processIncomingProofOfWork(const Message& msg)
         log("Proof is valid, Block has been mined, Sending to Networker for Propagation.");
         currentBlock.proofOfWork = incoming.proofOfWork;
 
-        chain.push_back(currentBlock);
+        pushBlock(currentBlock);
+        currentBlockWalletDeltas.clear();
 
         MSG_MANAGER_NETWORKER_NEWBLOCK outgoing;
         outgoing.block = currentBlock;
@@ -196,7 +222,11 @@ void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
     }
     
     log("Chain is valid. Using it from now on.");
-    chain = std::move(incoming.chain);
+    chain.clear();
+    for(Block& block : incoming.chain)
+    {
+        pushBlock(block);
+    }
 
     processPotentialWinningBlock_Finalize(transactionHashes.value());
 }
@@ -207,6 +237,7 @@ void Manager::processPotentialWinningBlock_Finalize(const std::set<u64>& transac
 
     currentBlock.id = winningBlock.id + 1;
     currentBlock.hashOfLastBlock = winningBlock.calculateFullHash();
+    currentBlockWalletDeltas.clear();
 
     std::remove_if(
         std::begin(currentBlock.transactions),
@@ -272,4 +303,21 @@ std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& ch
     }
 
     return transactionHashes;
+}
+
+void Manager::pushBlock(Block& block)
+{
+    for(Transaction& t : block.transactions)
+    {
+        if(t.sender == t.recipiant && t.amount == 2000)
+        {
+            wallets[t.sender] += t.amount;
+            continue;
+        }
+
+        wallets[t.sender] -= t.amount;
+        wallets[t.recipiant] -= t.amount;
+    }
+
+    chain.push_back(block);
 }
