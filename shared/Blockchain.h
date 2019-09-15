@@ -26,20 +26,12 @@ struct Block
 
     void parse(Parser& parser)
     {   
-        parser
-            .parse_u64(id)
-            .parse_u64(hashOfLastBlock)
-            .parse_u64(proofOfWork)
-            .parse_col(transactions);
+        parser.parse(id, hashOfLastBlock, proofOfWork, transactions);
     }
 
     void compose(Message& msg) const
     {
-        msg
-            .compose_u64(id)
-            .compose_u64(hashOfLastBlock)
-            .compose_u64(proofOfWork)
-            .compose_col(transactions);
+        msg.compose(id, hashOfLastBlock, proofOfWork, transactions);
     }
 
     bool isValid()

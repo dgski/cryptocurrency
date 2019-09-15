@@ -14,22 +14,12 @@ struct Transaction
 
     void parse(Parser& parser)
     {
-        parser
-            .parse_u64(time)
-            .parse_str(sender)
-            .parse_str(recipiant)
-            .parse_u64(amount)
-            .parse_str(signature);
+        parser.parse(time, sender, recipiant, amount, signature);
     }
 
     void compose(Message& msg) const
     {
-        msg
-            .compose_u64(time)
-            .compose_str(sender)
-            .compose_str(recipiant)
-            .compose_u64(amount)
-            .compose_str(signature);
+        msg.compose(time, sender, recipiant, amount, signature);
     }
 
     void logTransaction() const

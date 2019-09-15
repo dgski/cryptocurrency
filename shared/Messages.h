@@ -44,7 +44,7 @@ struct MSG_MANAGER_MINER_NEWBASEHASH : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_u64(newBaseHash);
+        parser.parse(newBaseHash);
     }
 
     void compose(Message& msg) const override
@@ -77,7 +77,7 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_u64(proofOfWork);
+        parser.parse(proofOfWork);
     }
 
     void compose(Message& msg) const override
@@ -112,7 +112,7 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_u64(numOfTransReq);
+        parser.parse(numOfTransReq);
     }
 
     void compose(Message& msg) const override
@@ -147,13 +147,13 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse_col(transactions);
+        parser.parse(transactions);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_col(transactions);
+        msg.compose(transactions);
     }
 
     void logMsg() const override
@@ -182,7 +182,7 @@ struct MSG_CLIENT_TRANSACTIONER_NEWTRANS : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        transaction.parse(parser);
+        parser.parse(transaction);
     }
 
     void compose(Message& msg) const override
@@ -245,7 +245,7 @@ struct MSG_MANAGER_NETWORKER_NEWBLOCK : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        block.parse(parser);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
@@ -282,7 +282,7 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        block.parse(parser);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
@@ -319,7 +319,7 @@ struct MSG_NETWORKER_NETWORKER_REGISTERME : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_str(connStr);
+        parser.parse(connStr);
     }
 
     void compose(Message& msg) const override
@@ -356,8 +356,7 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        block.parse(parser);
-        parser.parser_i32(connId);
+        parser.parse(block, connId);
     }
 
     void compose(Message& msg) const override
@@ -394,7 +393,7 @@ struct MSG_MANAGER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse_u64(maxId);
+        parser.parse(maxId);
     }
 
     void compose(Message& msg) const override
@@ -430,7 +429,7 @@ struct MSG_NETWORKER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse_u64(maxId);
+        parser.parse(maxId);
     }
 
     void compose(Message& msg) const override
@@ -465,7 +464,7 @@ struct MSG_NETWORKER_MANAGER_CHAINREQUEST : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse_u64(maxId);
+        parser.parse(maxId);
     }
 
     void compose(Message& msg) const override
@@ -500,13 +499,13 @@ struct MSG_MANAGER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse_col(chain);
+        parser.parse(chain);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_col(chain);
+        msg.compose(chain);
     }
 
     void logMsg() const override
@@ -536,13 +535,13 @@ struct MSG_NETWORKER_MANAGER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_col(chain);
+        parser.parse(chain);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_col(chain);
+        msg.compose(chain);
     }
 
     void logMsg() const override
@@ -572,13 +571,13 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse_col(chain);
+        parser.parse(chain);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose_col(chain);
+        msg.compose(chain);
     }
 
     void logMsg() const override
@@ -608,7 +607,7 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_str(publicWalletKey);
+        parser.parse(publicWalletKey);
     }
 
     void compose(Message& msg) const override
@@ -644,7 +643,7 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse_u64(amount);
+        parser.parse(amount);
     }
 
     void compose(Message& msg) const override

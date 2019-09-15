@@ -88,6 +88,18 @@ public:
     }
     
     template<typename T>
+    void compose_val(const std::list<T>& col)
+    {
+        compose_col(col);
+    }
+
+    template<typename T>
+    void compose_val(const std::vector<T>& col)
+    {
+        compose_col(col);
+    }
+
+    template<typename T>
     void compose_val(const T& t)
     {
         t.compose(*this);
@@ -148,11 +160,57 @@ public:
         return *this;
     }
 
-    Parser& parser_i32(i32& val)
+    Parser& parse_i32(i32& val)
     {
         val = *(i32*)ptr;
         ptr += sizeof(i32);
         return *this;
+    }
+
+    void parse_val(u64& val)
+    {
+        parse_u64(val);
+    }
+
+    void parse_val(str& val)
+    {
+        parse_str(val);
+    }
+
+    void parse_val(i32& val)
+    {
+        parse_i32(val);
+    }
+    
+    template<typename T>
+    void parse_val(std::list<T>& col)
+    {
+        parse_col(col);
+    }
+
+    template<typename T>
+    void parse_val(std::vector<T>& col)
+    {
+        parse_col(col);
+    }
+
+    template<typename T>
+    void parse_val(T& t)
+    {
+        t.parse(*this);
+    }
+
+    template<typename Type>
+    void parse(Type& item)
+    {
+        parse_val(item);
+    }
+
+    template<typename Type, typename... Types>
+    void parse(Type& item, Types& ...items)
+    {
+        parse_val(item);
+        parse(items...);
     }
 
     template<typename Col>
