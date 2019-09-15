@@ -4,6 +4,8 @@
 
 int main()
 {
+    str privateKey = "1038201938138";
+
     ClientConnection connToTransactioner;
     connToTransactioner.init(IpInfo{"0.0.0.0",8000});
 
@@ -19,7 +21,7 @@ int main()
             t.sender = "Bob";
             t.recipiant = "Michael";
             t.amount = 10;
-            t.signature = "SIGNATURE";
+            t.sign(privateKey);
 
             MSG_CLIENT_TRANSACTIONER_NEWTRANS outgoing;
             outgoing.transaction = t;

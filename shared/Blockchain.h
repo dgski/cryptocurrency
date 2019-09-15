@@ -50,9 +50,9 @@ struct Block
             return false;
         }
 
-        for(Transaction& t : transactions)
+        for(const Transaction& t : transactions)
         {
-            if(!isTransactionSignatureValid(t))
+            if(!t.isSignatureValid())
             {
                 return false;
             }

@@ -17,6 +17,7 @@ class Manager : public Module
     ServerConnection connFromNetworker;
 
     str myPublicKey;
+    str myPrivateKey;
 public:
     Manager(const char* iniFileName);
     void processMessage(const Message& msg);

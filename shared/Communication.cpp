@@ -41,7 +41,7 @@ std::optional<Message> getFinalMessage(int socket)
     return msg;
 }
 
-void sendFinalMessage(int socket, const Message& msg)
+ConnectionStatus sendFinalMessage(int socket, const Message& msg)
 {
     std::vector<byte> buffer(msg.getFullSize());
     
@@ -50,5 +50,13 @@ void sendFinalMessage(int socket, const Message& msg)
     memcpy(buffer.data() + 8, &msg.size, 8);
     memcpy(buffer.data() + 16, msg.data.data(), msg.size);
 
-    int bytes = send(socket, buffer.data(), buffer.size(), 0);
+    char dummy;
+    const int open = recv(socket, &dummy, 1, MSG_PEEK);
+    if(open == 0)
+    {
+        return ConnectionStatus::Disconnected;
+    }
+
+    const int bytes = send(socket, buffer.data(), buffer.size(), 0);
+    return ConnectionStatus::Connected;
 }

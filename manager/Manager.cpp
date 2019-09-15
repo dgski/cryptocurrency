@@ -11,6 +11,9 @@ Manager::Manager(const char* iniFileName)
     connFromNetworker.init(strToIp(params.at("connFromNetworker")));
     registerConnections({&connFromMiners, &connFromTransactioner, &connFromNetworker});
 
+    myPublicKey = params.at("myPublicKey");
+    myPrivateKey = params.at("myPrivateKey");
+
     registerScheduledTask(1000, [this]()
     {
         askTransactionerForNewTransactions();
@@ -142,14 +145,12 @@ void Manager::sendBaseHashToMiners()
 
 void Manager::mintCurrency()
 {
-    Transaction t;
+    Transaction& t = currentBlock.transactions.emplace_back();
     t.amount = 2000;
     t.sender = myPublicKey;
     t.recipiant = myPublicKey;
     t.time = getCurrentUnixTime();
-    t.signature = "signature";
-
-    currentBlock.transactions.push_back(t);
+    t.sign(myPrivateKey);
 }
 
 void Manager::processIncomingProofOfWork(const Message& msg)

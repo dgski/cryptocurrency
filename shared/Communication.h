@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <list>
 #include <optional>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -15,6 +16,12 @@
 
 #include "Types.h"
 #include "Utils.h"
+
+enum class ConnectionStatus
+{
+    Connected,
+    Disconnected
+};
 
 class Message
 {
@@ -103,6 +110,18 @@ public:
     {
         return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
     }
+
+    void logMsg(const char* prefix) const
+    {
+        log(
+            "% Message"
+            "{ id:%, reqId:%, size:% }",
+            prefix,
+            id,
+            reqId,
+            size
+        );
+    }
 };
 
 class Parser
@@ -152,7 +171,7 @@ public:
 };
 
 std::optional<Message> getFinalMessage(int socket);
-void sendFinalMessage(int socket, const Message& msg);
+ConnectionStatus sendFinalMessage(int socket, const Message& msg);
 
 using Callback = std::function<void(Message&)>;
 
@@ -182,7 +201,7 @@ public:
 class ServerConnection : public Connection
 {
     int serverFileDescriptor;
-    std::vector<int> sockets;
+    std::list<int> sockets;
     sockaddr_in address;
 
 public:
@@ -245,10 +264,12 @@ public:
     }
 
     void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override
-    {
-        for(int socket : sockets)
+    {   
+        const bool generateRequestId = msg.reqId == 0;
+
+        for(auto it = begin(sockets); it != end(sockets); ++it)
         {
-            if(msg.reqId == 0)
+            if(generateRequestId)
             {
                 msg.reqId = getNextReqId();
             }
@@ -257,7 +278,14 @@ public:
                 callbacks[msg.reqId] = callback.value();
             }
 
-            sendFinalMessage(socket, msg);
+            msg.logMsg("->");
+
+            ConnectionStatus status = sendFinalMessage(*it, msg);
+            if(status == ConnectionStatus::Disconnected)
+            {
+                log("Connection closed; could not send message. Deleting connection.");
+                sockets.erase(it);
+            }
         }
     }
 
@@ -268,6 +296,8 @@ public:
 
     void sendMessage(int socket, Message& msg, std::optional<Callback> callback = std::nullopt)
     {
+        msg.logMsg("->");
+
         if(msg.reqId == 0)
         {
             msg.reqId = getNextReqId();
@@ -293,6 +323,7 @@ public:
             if(potentialMsg.has_value())
             {
                 Message& msg = potentialMsg.value();
+                msg.logMsg("<-");
 
                 auto it = callbacks.find(msg.reqId);
                 if(it != callbacks.end())
@@ -350,7 +381,7 @@ public:
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 
-        log("Connection established");
+        log("ClientConnection established");
     }
 
     int getSocket() const
@@ -369,6 +400,8 @@ public:
             callbacks[msg.reqId] = callback.value();
         }
 
+        msg.logMsg("->");
+
         sendFinalMessage(socketFileDescriptor, msg);
     }
 
@@ -383,6 +416,8 @@ public:
         if(potentialMsg.has_value())
         {
             Message& msg = potentialMsg.value();
+            msg.logMsg("<-");
+            
             auto it = callbacks.find(msg.reqId);
             if(it != callbacks.end())
             {
