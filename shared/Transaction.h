@@ -2,6 +2,7 @@
 
 #include "Types.h"
 #include "Communication.h"
+#include "Crypto.h"
 
 struct Transaction
 {
@@ -43,6 +44,16 @@ struct Transaction
             signature
         );
     }
+
+    void sign(const str& privateKey)
+    {
+        signature = move(rsa_signData(this, sizeof(Transaction) - sizeof(str), privateKey));
+    }
+
+    bool isSignatureValid() const
+    {
+        return rsa_isSignatureValid(this, sizeof(Transaction) - sizeof(str), sender, signature);
+    }
 };
 
 namespace std
@@ -62,9 +73,4 @@ namespace std
                 std::hash<str>{}(transaction.signature);
         }
     };
-}
-
-inline bool isTransactionSignatureValid(Transaction& transaction)
-{
-    return true;
 }

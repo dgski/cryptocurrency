@@ -67,7 +67,7 @@ void Transactioner::processAddNewTransaction(const Message& msg)
 {
     MSG_CLIENT_TRANSACTIONER_NEWTRANS incoming{ msg };
 
-    if(!isTransactionSignatureValid(incoming.transaction))
+    if(incoming.transaction.isSignatureValid())
     {
         log("Signature Invalid. Rejecting Transaction.");
         return;
