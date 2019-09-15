@@ -60,7 +60,7 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     }
     
     log("Sending % transactions to Manager", outgoing.transactions.size());
-    connToManager.sendMessage(outgoing.msg());
+    connToManager.sendMessage(outgoing.msg(msg.reqId));
 }
 
 void Transactioner::processAddNewTransaction(const Message& msg)
