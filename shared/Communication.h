@@ -33,58 +33,37 @@ public:
     u64 size = 0;
     std::vector<byte> data;
 
-    Message& compose_u64(u64 val)
+    void compose_val(u64 val)
     {
         data.resize(data.size() + sizeof(u64));
         memcpy(data.data() + size, &val, sizeof(u64));
         size += sizeof(u64);
-
-        return *this;
     }
 
-    Message& compose_str(const str& val)
+    void compose_val(const str& val)
     {
         data.resize(data.size() + val.size() + 1);
         memcpy(data.data() + size, val.c_str(), val.size() + 1);
         size += val.size() + 1;
-
-        return *this;
     }
 
-    Message& compose_i32(i32 val)
+    void compose_val(i32 val)
     {
         data.resize(data.size() + sizeof(i32));
         memcpy(data.data() + size, &val, sizeof(i32));
         size += sizeof(i32);
-
-        return *this;
     }
 
     template<typename Col>
     Message& compose_col(const Col& col)
     {
-        compose_u64((u64)col.size());
+        compose((u64)col.size());
         for(const auto& c : col)
         {
-            c.compose(*this);
+            compose(c);
         }
 
         return *this;
-    }
-
-    void compose_val(u64 val)
-    {
-        compose_u64(val);
-    }
-
-    void compose_val(const str& val)
-    {
-        compose_str(val);
-    }
-
-    void compose_val(i32 val)
-    {
-        compose_i32(val);
     }
     
     template<typename T>
@@ -145,41 +124,36 @@ public:
         ptr = msg.data.data();
     }
 
-    Parser& parse_u64(u64& val)
+    void parse_val(u64& val)
     {
         val = *(u64*)ptr;
         ptr += sizeof(u64);
-        return *this;
-    }
-
-    Parser& parse_str(str& val)
-    {
-        val.assign((const char*)ptr);
-        ptr += val.size() + 1;
-        
-        return *this;
-    }
-
-    Parser& parse_i32(i32& val)
-    {
-        val = *(i32*)ptr;
-        ptr += sizeof(i32);
-        return *this;
-    }
-
-    void parse_val(u64& val)
-    {
-        parse_u64(val);
     }
 
     void parse_val(str& val)
     {
-        parse_str(val);
+        val.assign((const char*)ptr);
+        ptr += val.size() + 1;
     }
 
     void parse_val(i32& val)
     {
-        parse_i32(val);
+        val = *(i32*)ptr;
+        ptr += sizeof(i32);
+    }
+
+    template<typename Col>
+    Parser& parse_col(Col& col)
+    {   
+        u64 size;
+        parse(size);
+        for(u64 i{ 0 }; i < size; ++i)
+        {
+            auto& c = col.emplace_back();
+            parse(c);
+        }
+
+        return *this;
     }
     
     template<typename T>
@@ -211,20 +185,6 @@ public:
     {
         parse_val(item);
         parse(items...);
-    }
-
-    template<typename Col>
-    Parser& parse_col(Col& col)
-    {   
-        u64 size;
-        parse_u64(size);
-        for(u64 i{ 0 }; i < size; ++i)
-        {
-            auto& c = col.emplace_back();
-            c.parse(*this);
-        }
-
-        return *this;
     }
 };
 
