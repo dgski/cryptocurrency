@@ -19,7 +19,7 @@ Manager::Manager(const char* iniFileName)
         askTransactionerForNewTransactions();
     });
 
-    currentBaseHash = 12393939334343; // FAKE
+    mintCurrency();
 }
 
 void Manager::processMessage(const Message& msg)
@@ -151,6 +151,8 @@ void Manager::mintCurrency()
     t.recipiant = myPublicKey;
     t.time = getCurrentUnixTime();
     t.sign(myPrivateKey);
+
+    currentBaseHash = currentBlock.calculateBaseHash();
 }
 
 void Manager::processIncomingProofOfWork(const Message& msg)
@@ -176,9 +178,8 @@ void Manager::processIncomingProofOfWork(const Message& msg)
         newBlock.hashOfLastBlock = currentBlock.calculateFullHash();
         
         currentBlock = newBlock;
-        mintCurrency();
-        currentBaseHash = currentBlock.calculateBaseHash();
 
+        mintCurrency();
         sendBaseHashToMiners();
     }
 }
@@ -250,7 +251,6 @@ void Manager::processPotentialWinningBlock_Finalize(const std::set<u64>& transac
     );
 
     mintCurrency();
-    currentBaseHash = currentBlock.calculateBaseHash();
     sendBaseHashToMiners();
 }
 
