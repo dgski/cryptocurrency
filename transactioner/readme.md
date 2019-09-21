@@ -10,3 +10,7 @@ The Transactioner module receives and verifies the signatures attached to new tr
 ## Outgoing Messages
 - MSG_A_MANAGER_TRANSACTIONER_TRANSREQ -  Contains New Transactions
 - MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET - Inquires about the funds available in this wallet
+
+## Configuration Parameters
+- connToManager - ip address and port string
+- connFromClients - ip address and port string

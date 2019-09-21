@@ -16,3 +16,8 @@ The Networker module accepts new Blocks from the Manager module to propagate to 
 - MSG_NETWORKER_MANAGER_CHAIN - A chain for the Manager module
 - MSG_NETWORKER_MANAGER_CHAINREQUEST - A chain request from an external node to the Manager module
 - MSG_NETWORKER_NETWORKER_CHAIN - A chain from an external node
+
+## Configuration Parameters
+- connToManager - ip address and port string
+- connFromOtherNodes - ip address and port string
+- connsToOtherNodes - comma seperated list of ip address and port strings

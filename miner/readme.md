@@ -12,3 +12,7 @@ The Miner module is a simple module with two running threads and one external co
 - Network thread: Receives And Sends Messages
 - Miner thread: finds proof of work
 - Communication between threads exists using protected variable (AtomicChannel)
+
+## Configuration Parameters
+- connToManager - ip address and port string
+- incrementSize - integer value of nonce incrementation during mining

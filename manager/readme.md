@@ -14,3 +14,10 @@ The Manager module accepts new transactions from the Transactioner module, const
 - MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ - Asks Transactioner module for new Transactions
 - MSG_MANAGER_MINER_NEWBASEHASH - Sends the new Base Hash to the Miner modules
 - MSG_MANAGER_NETWORKER_CHAIN - Sends the current chain to the networker module
+
+## Configuration Parameters
+- connFromMiners - ip address and port string
+- connFromTransactioner - ip address and port string
+- connFromNetworker - ip address and port string
+- myPublicKey - string value of public wallet key that will receive funds
+- myPrivateKey - string value of private wallet key that will receive funds
