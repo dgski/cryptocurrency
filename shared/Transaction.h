@@ -38,7 +38,6 @@ struct Transaction
     void sign(const str& privateKey)
     {
         size_t hashValue{ Transaction::hashValue(*this) };
-
         signature = move(rsa_signData(&hashValue, sizeof(size_t), privateKey));
     }
 
@@ -46,7 +45,7 @@ struct Transaction
     {
         size_t hashValue{ Transaction::hashValue(*this) };
         
-        return rsa_isSignatureValid(this, sizeof(Transaction) - sizeof(str), sender, signature);
+        return rsa_isSignatureValid(&hashValue, sizeof(size_t), sender, signature);
     }
 
     static size_t hashValue(const Transaction& transaction)
