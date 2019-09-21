@@ -37,30 +37,25 @@ struct Transaction
 
     void sign(const str& privateKey)
     {
-        signature = move(rsa_signData(this, sizeof(Transaction) - sizeof(str), privateKey));
+        size_t hashValue{ Transaction::hashValue(*this) };
+
+        signature = move(rsa_signData(&hashValue, sizeof(size_t), privateKey));
     }
 
     bool isSignatureValid() const
     {
+        size_t hashValue{ Transaction::hashValue(*this) };
+        
         return rsa_isSignatureValid(this, sizeof(Transaction) - sizeof(str), sender, signature);
     }
-};
 
-namespace std
-{
-    template<>
-    struct hash<Transaction>
+    static size_t hashValue(const Transaction& transaction)
     {
-        typedef Transaction& argument_type;
-        typedef std::size_t result_type;
-        result_type operator()(argument_type const& transaction) const noexcept
-        {
-            return
-                std::hash<u64>{}(transaction.time) ^
-                std::hash<str>{}(transaction.sender) ^
-                std::hash<str>{}(transaction.recipiant) ^
-                std::hash<u64>{}(transaction.amount) ^
-                std::hash<str>{}(transaction.signature);
-        }
-    };
-}
+        return
+            std::hash<u64>{}(transaction.time) ^
+            std::hash<str>{}(transaction.sender) ^
+            std::hash<str>{}(transaction.recipiant) ^
+            std::hash<u64>{}(transaction.amount) ^
+            std::hash<str>{}(transaction.signature);
+    }
+};

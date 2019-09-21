@@ -35,18 +35,15 @@ public:
 
 std::map<str, str> getInitParameters(const char* fileName);
 
-template<typename T>
-size_t hashVector(std::vector<T> data);
-
 bool validProof(u64 nonce, u64 hash);
 
-template<typename T>
-size_t hashVector(std::vector<T> data)
+template<typename T, typename H>
+size_t hashVector(const std::vector<T>& data, H hashFunction)
 {
     size_t seed = data.size();
     for(auto d : data)
     {
-        seed ^= 3203302344 ^ std::hash<T>{}(d);
+        seed ^= 3203302344 ^ hashFunction(d);
     }
 
     return seed;

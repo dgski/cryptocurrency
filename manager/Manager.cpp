@@ -246,7 +246,7 @@ void Manager::processPotentialWinningBlock_Finalize(const std::set<u64>& transac
         std::end(currentBlock.transactions),
         [&transactionHashes, this](Transaction& t)
         {
-            return transactionHashes.count(std::hash<Transaction>{}(t)) == 1;
+            return transactionHashes.count(Transaction::hashValue(t)) == 1;
         }
     );
 
@@ -299,7 +299,7 @@ std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& ch
 
         for(Transaction& t : block.transactions)
         {
-            transactionHashes.insert(std::hash<Transaction>{}(t));
+            transactionHashes.insert(Transaction::hashValue(t));
         }
     }
 
