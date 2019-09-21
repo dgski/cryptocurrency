@@ -4,6 +4,7 @@
 
 int main()
 {
+    str publicKey = "12929382323";
     str privateKey = "1038201938138";
 
     ClientConnection connToTransactioner;
@@ -21,7 +22,7 @@ int main()
             t.sender = "Bob";
             t.recipiant = "Michael";
             t.amount = 10;
-            t.sign(privateKey);
+            t.sign(privateKey, publicKey);
 
             MSG_CLIENT_TRANSACTIONER_NEWTRANS outgoing;
             outgoing.transaction = t;

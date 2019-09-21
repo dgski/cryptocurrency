@@ -35,16 +35,15 @@ struct Transaction
         );
     }
 
-    void sign(const str& privateKey)
+    void sign(const str& privateKey, const str& publicKey)
     {
         size_t hashValue{ Transaction::hashValue(*this) };
-        signature = move(rsa_signData(&hashValue, sizeof(size_t), privateKey));
+        signature = move(rsa_signData(&hashValue, sizeof(size_t), publicKey, privateKey));
     }
 
     bool isSignatureValid() const
     {
         size_t hashValue{ Transaction::hashValue(*this) };
-        
         return rsa_isSignatureValid(&hashValue, sizeof(size_t), sender, signature);
     }
 

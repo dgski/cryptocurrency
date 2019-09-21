@@ -150,7 +150,7 @@ void Manager::mintCurrency()
     t.sender = myPublicKey;
     t.recipiant = myPublicKey;
     t.time = getCurrentUnixTime();
-    t.sign(myPrivateKey);
+    t.sign(myPrivateKey, myPublicKey);
 
     currentBaseHash = currentBlock.calculateBaseHash();
 }

@@ -2,5 +2,5 @@
 
 #include "Utils.h"
 
-str rsa_signData(const void* data, size_t dataLen, const str& privateKey);
-bool rsa_isSignatureValid(const void* data, size_t dataLen, const str& publicKey, const str& signature);
+str rsa_signData(const void* data, size_t dataLen, const str& privateKeyFilename, const str& publicKeyFilename);
+bool rsa_isSignatureValid(const void* data, size_t dataLen, const str& publicKeyFilename, const str& signature);
