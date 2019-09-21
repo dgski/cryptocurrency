@@ -4,13 +4,10 @@ component Networker
 component Transactioner
 component Miners
 component Clients
-component Blockchainer
 
-Clients -- Transactioner
-Transactioner -- Manager
-Manager -- Networker
-Blockchainer -- Manager
-Blockchainer -- Networker
+Clients --> Transactioner
+Transactioner <--> Manager
+Manager <--> Networker
 
-Miners -- Manager
+Miners <--> Manager
 @enduml
