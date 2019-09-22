@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include <fstream>
 #include <sstream>
 #include <openssl/rsa.h>
@@ -12,11 +11,20 @@
 class RSAKeyPair
 {
     RSA* rsa;
+    bool valid = false;
+
+    RSAKeyPair
+
 public:
     str publicKey;
-
-    static std::optional<RSAKeyPair> create(const str& privateKeyFilename, const str& publicKeyFilename);
-    static std::optional<RSAKeyPair> create(const str& publicKey);
+    RSAKeyPair(const str& privateKeyFilename, const str& publicKeyFilename);
+    RSAKeyPair(const str& publicKey);
     str signData(const void* data, size_t dataLen) const;
     bool isSignatureValid(const void* data, size_t dataLen, const str& signature) const;
+    bool isValid();
+
+    ~RSAKeyPair()
+    {
+        RSA_free(rsa);
+    }
 };
