@@ -12,9 +12,8 @@ int main()
     str privateKeyFileName = "pri_0.pem";
     str publicKeyFileName = "pub_0.pem";
 
-    RSAKeyPair keys(privateKeyFileName, publicKeyFileName);
-
-    if(!keys.isValid())
+    auto keys = RSAKeyPair::create(privateKeyFileName, publicKeyFileName);
+    if(!keys.has_value())
     {
         log("Could not create keys!");
         return -1;
@@ -22,13 +21,13 @@ int main()
 
     log("keys created!:");
 
-    str signature = keys.signData(data.c_str(), data.length());
+    str signature = keys.value().signData(data.c_str(), data.length());
 
     log("signature: %", signature);
 
 
-    RSAKeyPair pubKey(keys.publicKey);
+    auto pubKey = RSAKeyPair::create(keys.value().publicKey);
 
-    const bool valid = pubKey.isSignatureValid(data.c_str(), data.length(), signature);
+    const bool valid = pubKey.value().isSignatureValid(data.c_str(), data.length(), signature);
     log("isSigatureValid: %", valid? "true" : "false");
 }

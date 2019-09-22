@@ -1,50 +1,47 @@
 #include "Crypto.h"
 
-RSAKeyPair::RSAKeyPair(const str& privateKeyFilename, const str& publicKeyFilename)
+std::optional<RSAKeyPair> RSAKeyPair::create(const str& privateKeyFilename, const str& publicKeyFilename)
 {
-    rsa = RSA_new();
+    RSAKeyPair keys;
+
+    keys.rsa = RSA_new();
 
     FILE* pri_key_file = fopen(privateKeyFilename.c_str(), "r");
     if(pri_key_file == NULL)
     {
-        valid = false;
-        return;
+        return std::nullopt;
     }
-    rsa = PEM_read_RSAPrivateKey(pri_key_file, &rsa, NULL, NULL);
+    keys.rsa = PEM_read_RSAPrivateKey(pri_key_file, &keys.rsa, NULL, NULL);
     fclose(pri_key_file);
     
     FILE* pub_key_file = fopen(publicKeyFilename.c_str(), "r");
     if(pub_key_file == NULL)
     {
-        valid = false;
-        return;
+        return std::nullopt;
     }
-    rsa = PEM_read_RSAPublicKey(pub_key_file, &rsa, NULL, NULL);
+    keys.rsa = PEM_read_RSAPublicKey(pub_key_file, &keys.rsa, NULL, NULL);
     fclose(pub_key_file);
 
     std::ifstream t(publicKeyFilename);
     std::stringstream buffer;
     buffer << t.rdbuf();
-    publicKey = std::move(buffer.str());
+    keys.publicKey = std::move(buffer.str());
 
-    valid = true;
+    return std::move(keys);
 }
 
-RSAKeyPair::RSAKeyPair(const str& publicKey)
-{    
+std::optional<RSAKeyPair> RSAKeyPair::create(const str& publicKey)
+{
+    RSAKeyPair keys;
+    
     BIO* bio = BIO_new_mem_buf((void*)publicKey.c_str(), publicKey.length());
-    rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+    keys.rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
 
-    valid = true;
+    return std::move(keys);
 }
 
 str RSAKeyPair::signData(const void* data, size_t dataLen) const
 {
-    if(!valid)
-    {
-        throw std::runtime_error("RSAKeyPair is not valid.");
-    }
-
     unsigned char sig[RSA_size(rsa)];
     unsigned int sig_len = 0;
     const int res = RSA_sign(
@@ -58,7 +55,7 @@ str RSAKeyPair::signData(const void* data, size_t dataLen) const
 
     if(res != 1)
     {
-        throw std::runtime_error("Could now sign Data");
+        throw std::runtime_error("Could not sign data");
     }
 
     str signatureStr;
@@ -74,11 +71,6 @@ str RSAKeyPair::signData(const void* data, size_t dataLen) const
 
 bool RSAKeyPair::isSignatureValid(const void* data, size_t dataLen, const str& signature) const
 {
-    if(!valid)
-    {
-        throw std::runtime_error("RSAKeyPair is not valid.");
-    }
-
     unsigned char sig[256];
     const char* pointer = signature.c_str();
     for(int i = 0; i < 256; i++)
@@ -104,9 +96,4 @@ bool RSAKeyPair::isSignatureValid(const void* data, size_t dataLen, const str& s
     }
 
     return true;
-}
-
-bool RSAKeyPair::isValid()
-{
-    return valid;
 }
