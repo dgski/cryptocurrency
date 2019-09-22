@@ -19,5 +19,5 @@ The Manager module accepts new transactions from the Transactioner module, const
 - connFromMiners - ip address and port string
 - connFromTransactioner - ip address and port string
 - connFromNetworker - ip address and port string
-- myPublicKey - string value of public wallet key that will receive funds
-- myPrivateKey - string value of private wallet key that will receive funds
+- privateKeyFile - string value of filename with private wallet key that will receive funds
+- publicKeyFile - string value of filename with public wallet key that will receive funds
