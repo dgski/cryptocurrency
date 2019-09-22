@@ -620,8 +620,8 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET : public MSG_STRUCT
     {
         log(
           "MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET"
-          "{ publicWalletKey:% }",
-          publicWalletKey
+          "{ publicWalletKey.lenght():% }",
+          publicWalletKey.length()
         );
     }
 };

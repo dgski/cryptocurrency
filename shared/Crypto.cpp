@@ -1,43 +1,47 @@
-#include <openssl/rsa.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-
 #include "Crypto.h"
 
-static bool cryptoInitialized = false;
-
-str rsa_signData(const void* data, size_t dataLen, const str& privateKeyFilename, const str& publicKeyFilename)
+std::optional<RSAKeyPair> RSAKeyPair::create(const str& privateKeyFilename, const str& publicKeyFilename)
 {
-    if(!cryptoInitialized)
-    {
-        OpenSSL_add_all_algorithms();
-        OpenSSL_add_all_ciphers();
-        ERR_load_crypto_strings();
-        ERR_free_strings();
-        cryptoInitialized = true;
-    }
+    RSAKeyPair keys;
 
-    log("rsa_signData: signing data, len=%", dataLen);
+    keys.rsa = RSA_new();
 
-    RSA* rsa = RSA_new();
-
-   //Read private key
     FILE* pri_key_file = fopen(privateKeyFilename.c_str(), "r");
-    if(pri_key_file == NULL) return 0;
-
-    rsa = PEM_read_RSAPrivateKey(pri_key_file, &rsa, NULL, NULL);
+    if(pri_key_file == NULL)
+    {
+        return std::nullopt;
+    }
+    keys.rsa = PEM_read_RSAPrivateKey(pri_key_file, &keys.rsa, NULL, NULL);
     fclose(pri_key_file);
-
-    printf("\n");
     
-    //Read public key
     FILE* pub_key_file = fopen(publicKeyFilename.c_str(), "r");
-    if(pub_key_file == NULL) return 0;
-
-    rsa = PEM_read_RSAPublicKey(pub_key_file, &rsa, NULL, NULL);
-
+    if(pub_key_file == NULL)
+    {
+        return std::nullopt;
+    }
+    keys.rsa = PEM_read_RSAPublicKey(pub_key_file, &keys.rsa, NULL, NULL);
     fclose(pub_key_file);
 
+    std::ifstream t(publicKeyFilename);
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    keys.publicKey = std::move(buffer.str());
+
+    return keys;
+}
+
+std::optional<RSAKeyPair> RSAKeyPair::create(const str& publicKey)
+{
+    RSAKeyPair keys;
+    
+    BIO* bio = BIO_new_mem_buf((void*)publicKey.c_str(), publicKey.length());
+    keys.rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+
+    return keys;
+}
+
+str RSAKeyPair::signData(const void* data, size_t dataLen) const
+{
     unsigned char sig[RSA_size(rsa)];
     unsigned int sig_len = 0;
     const int res = RSA_sign(
@@ -48,11 +52,10 @@ str rsa_signData(const void* data, size_t dataLen, const str& privateKeyFilename
         &sig_len,
         rsa
     );
-    
+
     if(res != 1)
     {
-        log("rsa_signData: Could not sign data!");
-        return {};
+        throw std::runtime_error("Could now sign Data");
     }
 
     str signatureStr;
@@ -66,33 +69,10 @@ str rsa_signData(const void* data, size_t dataLen, const str& privateKeyFilename
     return signatureStr;
 }
 
-bool rsa_isSignatureValid(const void* data, size_t dataLen, const str& publicKey, const str& signature)
+bool RSAKeyPair::isSignatureValid(const void* data, size_t dataLen, const str& signature) const
 {
-    if(!cryptoInitialized)
-    {
-        OpenSSL_add_all_algorithms();
-        OpenSSL_add_all_ciphers();
-        ERR_load_crypto_strings();
-        ERR_free_strings();
-        cryptoInitialized = true;
-    }
-
-    //BIO* bio = BIO_new_mem_buf((void*)publicKey.c_str(), publicKey.length());
-    //RSA* rsa_pub = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
-
-    //Read public key
-    RSA* rsa = RSA_new();
-    FILE* pub_key_file = fopen(publicKey.c_str(), "r");
-    if(pub_key_file == NULL) return 0;
-    rsa = PEM_read_RSAPublicKey(pub_key_file, &rsa, NULL, NULL);
-    fclose(pub_key_file);
-
-    log("step 1");
-
-    unsigned char data2[32] = { 0 };
     unsigned char sig[256];
     const char* pointer = signature.c_str();
-    //extract sig from hex asci
     for(int i = 0; i < 256; i++)
     {
         unsigned int value;
@@ -109,11 +89,6 @@ bool rsa_isSignatureValid(const void* data, size_t dataLen, const str& publicKey
         256,
         rsa
     );
-
-    log("step 2");
-
-    //BIO_free_all(bio);
-    RSA_free(rsa);
 
     if(res == 0)
     {

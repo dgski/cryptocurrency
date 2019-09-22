@@ -4,8 +4,12 @@
 
 int main()
 {
-    str publicKey = "12929382323";
-    str privateKey = "1038201938138";
+    auto keys = RSAKeyPair::create("private.pem", "public.pem");
+    if(!keys.has_value())
+    {
+        log("Could not create keypair!");
+        return -1;
+    }
 
     ClientConnection connToTransactioner;
     connToTransactioner.init(IpInfo{"0.0.0.0",8000});
@@ -19,10 +23,10 @@ int main()
         {
             Transaction t;
             t.time = getCurrentUnixTime();
-            t.sender = "Bob";
-            t.recipiant = "Michael";
+            t.sender = keys.value().publicKey;
+            t.recipiant = keys.value().publicKey;
             t.amount = 10;
-            t.sign(privateKey, publicKey);
+            t.sign(keys.value());
 
             MSG_CLIENT_TRANSACTIONER_NEWTRANS outgoing;
             outgoing.transaction = t;

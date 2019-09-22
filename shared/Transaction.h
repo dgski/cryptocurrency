@@ -35,16 +35,17 @@ struct Transaction
         );
     }
 
-    void sign(const str& privateKey, const str& publicKey)
+    void sign(const RSAKeyPair& keys)
     {
         size_t hashValue{ Transaction::hashValue(*this) };
-        signature = move(rsa_signData(&hashValue, sizeof(size_t), publicKey, privateKey));
+        signature = move(keys.signData(&hashValue, sizeof(size_t)));
     }
 
     bool isSignatureValid() const
     {
         size_t hashValue{ Transaction::hashValue(*this) };
-        return rsa_isSignatureValid(&hashValue, sizeof(size_t), sender, signature);
+        auto keys = RSAKeyPair::create(sender);
+        return keys.value().isSignatureValid(&hashValue, sizeof(size_t), signature);
     }
 
     static size_t hashValue(const Transaction& transaction)
@@ -53,7 +54,6 @@ struct Transaction
             std::hash<u64>{}(transaction.time) ^
             std::hash<str>{}(transaction.sender) ^
             std::hash<str>{}(transaction.recipiant) ^
-            std::hash<u64>{}(transaction.amount) ^
-            std::hash<str>{}(transaction.signature);
+            std::hash<u64>{}(transaction.amount);
     }
 };

@@ -10,9 +10,15 @@ Manager::Manager(const char* iniFileName)
     connFromTransactioner.init(strToIp(params.at("connFromTransactioner")));
     connFromNetworker.init(strToIp(params.at("connFromNetworker")));
     registerConnections({&connFromMiners, &connFromTransactioner, &connFromNetworker});
-
-    myPublicKey = params.at("myPublicKey");
-    myPrivateKey = params.at("myPrivateKey");
+    
+    walletKeys = RSAKeyPair::create(
+        params.at("privateKeyFile"),
+        params.at("publicKeyFile")
+    );
+    if(!walletKeys.has_value())
+    {
+        throw std::runtime_error("Wallet Keypair could not be read.");
+    }
 
     registerScheduledTask(1000, [this]()
     {
@@ -147,10 +153,10 @@ void Manager::mintCurrency()
 {
     Transaction& t = currentBlock.transactions.emplace_back();
     t.amount = 2000;
-    t.sender = myPublicKey;
-    t.recipiant = myPublicKey;
+    t.sender = walletKeys.value().publicKey;
+    t.recipiant = walletKeys.value().publicKey;
     t.time = getCurrentUnixTime();
-    t.sign(myPrivateKey, myPublicKey);
+    t.sign(walletKeys.value());
 
     currentBaseHash = currentBlock.calculateBaseHash();
 }

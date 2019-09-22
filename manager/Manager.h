@@ -16,8 +16,7 @@ class Manager : public Module
     ServerConnection connFromTransactioner;
     ServerConnection connFromNetworker;
 
-    str myPublicKey;
-    str myPrivateKey;
+    std::optional<RSAKeyPair> walletKeys;
 public:
     Manager(const char* iniFileName);
     void processMessage(const Message& msg);
