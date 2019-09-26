@@ -13,6 +13,8 @@
 #include <vector>
 #include <functional>
 #include <unordered_map>
+#include <mutex>
+#include <thread>
 
 #include "Types.h"
 #include "Utils.h"
@@ -193,11 +195,21 @@ ConnectionStatus sendFinalMessage(int socket, const Message& msg);
 
 using Callback = std::function<void(Message&)>;
 
+struct OutboundMessage
+{
+    std::optional<int> socket;
+    Message message;
+    std::optional<Callback> callback;
+};
+
 class Connection
 {
 protected:
     u32 nextReqId = 1;
     std::unordered_map<u32,Callback> callbacks;
+
+    std::unique_ptr<std::mutex> outgoingMutex;
+    std::list<OutboundMessage> outgoingQueue;
 
     u32 getNextReqId()
     {
@@ -227,6 +239,8 @@ public:
     {
         log("Initializing ServerConnection address=%, port=%", ip.address, ip.port);
 
+        outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
+
         if ((serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
         { 
             perror("socket failed"); 
@@ -244,6 +258,8 @@ public:
         {
             std::cout << "Failed to Listen" << std::endl;
         }
+
+        run();
     }
 
     void acceptNewConnections(bool wait = false)
@@ -284,28 +300,8 @@ public:
 
     void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override
     {   
-        const bool generateRequestId = msg.reqId == 0;
-
-        for(auto it = begin(sockets); it != end(sockets); ++it)
-        {
-            if(generateRequestId)
-            {
-                msg.reqId = getNextReqId();
-            }
-            if(callback.has_value())
-            {
-                callbacks[msg.reqId] = callback.value();
-            }
-
-            msg.logMsg("->");
-
-            ConnectionStatus status = sendFinalMessage(*it, msg);
-            if(status == ConnectionStatus::Disconnected)
-            {
-                log("Connection closed; could not send message. Deleting connection.");
-                sockets.erase(it);
-            }
-        }
+        std::lock_guard<std::mutex> lock(*outgoingMutex);
+        outgoingQueue.push_back({ std::nullopt, msg, callback });
     }
 
     void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) override
@@ -314,19 +310,9 @@ public:
     }
 
     void sendMessage(int socket, Message& msg, std::optional<Callback> callback = std::nullopt)
-    {
-        msg.logMsg("->");
-
-        if(msg.reqId == 0)
-        {
-            msg.reqId = getNextReqId();
-        }
-        if(callback.has_value())
-        {
-            callbacks[msg.reqId] = callback.value();
-        }
-
-        sendFinalMessage(socket, msg);
+    {   
+        std::lock_guard<std::mutex> lock(*outgoingMutex);
+        outgoingQueue.push_back({socket, msg, callback});
     }
 
     void sendMessage(int socket, Message&& msg, std::optional<Callback> callback = std::nullopt)
@@ -360,6 +346,78 @@ public:
 
         return std::nullopt;
     }
+
+    void run()
+    {
+        std::thread outgoing([this]()
+        {
+            while(true)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                OutboundMessage msg;
+                {
+                    std::lock_guard<std::mutex> lock(*outgoingMutex);
+                    if(outgoingQueue.empty())
+                    {
+                        continue;
+                    }
+                    msg = std::move(outgoingQueue.front());
+                    outgoingQueue.pop_front();
+                }
+                
+                msg.message.logMsg("->");
+                if(msg.socket.has_value())
+                {
+                    sendToSingle(msg);
+                }
+                else
+                {
+                    sendToAll(msg);
+                }
+            }
+        });
+        outgoing.detach();
+    }
+
+    void sendToAll(OutboundMessage& msg)
+    {
+        const bool generateRequestId = msg.message.reqId == 0;
+
+        for(auto it = begin(sockets); it != end(sockets); ++it)
+        {
+            if(generateRequestId)
+            {
+                msg.message.reqId = getNextReqId();
+            }
+            if(msg.callback.has_value())
+            {
+                callbacks[msg.message.reqId] = msg.callback.value();
+            }
+
+            msg.message.logMsg("->");
+
+            ConnectionStatus status = sendFinalMessage(*it, msg.message);
+            if(status == ConnectionStatus::Disconnected)
+            {
+                log("Connection closed; could not send message. Deleting connection.");
+                sockets.erase(it);
+            }
+        }
+    }
+
+    void sendToSingle(OutboundMessage& msg)
+    {
+        if(msg.message.reqId == 0)
+        {
+            msg.message.reqId = getNextReqId();
+        }
+        if(msg.callback.has_value())
+        {
+            callbacks[msg.message.reqId] = msg.callback.value();
+        }
+
+        sendFinalMessage(msg.socket.value(), msg.message);
+    }
 };
 
 class ClientConnection : public Connection
@@ -370,6 +428,9 @@ public:
     void init(const IpInfo& ip)
     {
         log("Initializing ClientConnection address=%, port=%", ip.address, ip.port);
+
+        outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
+
         sockaddr_in serv_addr;
 
         socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -401,6 +462,8 @@ public:
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 
         log("ClientConnection established");
+
+        run();
     }
 
     int getSocket() const
@@ -410,18 +473,8 @@ public:
 
     void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override
     {
-        if(msg.reqId == 0)
-        {
-            msg.reqId = getNextReqId();
-        }
-        if(callback.has_value())
-        {
-            callbacks[msg.reqId] = callback.value();
-        }
-
-        msg.logMsg("->");
-
-        sendFinalMessage(socketFileDescriptor, msg);
+        std::lock_guard<std::mutex> lock(*outgoingMutex);
+        outgoingQueue.push_back({ std::nullopt, msg, callback });
     }
 
     void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) override
@@ -453,5 +506,38 @@ public:
         {
             return std::nullopt;
         }
+    }
+
+    void run()
+    {
+        std::thread outgoing([this]()
+        {
+            while(true)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                OutboundMessage msg;
+                {
+                    std::lock_guard<std::mutex> lock(*outgoingMutex);
+                    if(outgoingQueue.empty())
+                    {
+                        continue;
+                    }
+                    msg = std::move(outgoingQueue.front());
+                    outgoingQueue.pop_front();
+                }
+
+                msg.message.logMsg("->");
+                if(msg.message.reqId == 0)
+                {
+                    msg.message.reqId = getNextReqId();
+                }
+                if(msg.callback.has_value())
+                {
+                    callbacks[msg.message.reqId] = msg.callback.value();
+                }
+                sendFinalMessage(socketFileDescriptor, msg.message);
+            }
+        });
+        outgoing.detach();
     }
 };
