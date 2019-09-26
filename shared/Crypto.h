@@ -40,7 +40,7 @@ public:
     }
 
     str publicKey;
-    static std::optional<RSAKeyPair> create(const str& privateKeyFilename, const str& publicKeyFilename);
+    static std::optional<RSAKeyPair> create(const str& privKeyFilename, const str& pubKeyFilename);
     static std::optional<RSAKeyPair> create(const str& publicKey);
     str signData(const void* data, size_t dataLen) const;
     bool isSignatureValid(const void* data, size_t dataLen, const str& signature) const;

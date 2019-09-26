@@ -41,7 +41,8 @@ public:
         clientConnections.push_back(conn);
     }
 
-    void registerConnections(std::initializer_list<std::variant<ClientConnection*, ServerConnection*>> conns)
+    void registerConnections(
+        std::initializer_list<std::variant<ClientConnection*, ServerConnection*>> conns)
     {
         for(auto conn : conns)
         {

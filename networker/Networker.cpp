@@ -107,10 +107,14 @@ void Networker::processManagerChainRequest(const Message& msg)
     MSG_NETWORKER_NETWORKER_CHAINREQUEST outgoing;
     outgoing.maxId = incoming.maxId;
 
-    connFromOtherNodes.sendMessage(incoming.connId, outgoing.msg(), [this, reqId = msg.reqId](const Message& msg)
-    {
+    connFromOtherNodes.sendMessage(
+        incoming.connId,
+        outgoing.msg(),
+        [this, reqId = msg.reqId](const Message& msg)
+        {
         processManagerChainRequest_Reply(reqId, msg);
-    });
+        }
+    );
 }
 
 void Networker::processManagerChainRequest_Reply(u32 reqId, const Message& msg)

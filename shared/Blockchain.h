@@ -16,7 +16,11 @@ struct Block
 
     u64 calculateBaseHash() const
     {
-        return 39493943932 ^ std::hash<u64>{}(id) ^ hashVector(transactions, Transaction::hashValue) ^ std::hash<u64>{}(hashOfLastBlock);
+        return
+            39493943932 ^
+            std::hash<u64>{}(id) ^
+            hashVector(transactions, Transaction::hashValue) ^
+            std::hash<u64>{}(hashOfLastBlock);
     }
 
     u64 calculateFullHash() const

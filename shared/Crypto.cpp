@@ -1,12 +1,12 @@
 #include "Crypto.h"
 
-std::optional<RSAKeyPair> RSAKeyPair::create(const str& privateKeyFilename, const str& publicKeyFilename)
+std::optional<RSAKeyPair> RSAKeyPair::create(const str& privKeyFilename, const str& pubKeyFilename)
 {
     RSAKeyPair keys;
 
     keys.rsa = RSA_new();
 
-    FILE* pri_key_file = fopen(privateKeyFilename.c_str(), "r");
+    FILE* pri_key_file = fopen(privKeyFilename.c_str(), "r");
     if(pri_key_file == NULL)
     {
         return std::nullopt;
@@ -14,7 +14,7 @@ std::optional<RSAKeyPair> RSAKeyPair::create(const str& privateKeyFilename, cons
     keys.rsa = PEM_read_RSAPrivateKey(pri_key_file, &keys.rsa, NULL, NULL);
     fclose(pri_key_file);
     
-    FILE* pub_key_file = fopen(publicKeyFilename.c_str(), "r");
+    FILE* pub_key_file = fopen(pubKeyFilename.c_str(), "r");
     if(pub_key_file == NULL)
     {
         return std::nullopt;
@@ -22,7 +22,7 @@ std::optional<RSAKeyPair> RSAKeyPair::create(const str& privateKeyFilename, cons
     keys.rsa = PEM_read_RSAPublicKey(pub_key_file, &keys.rsa, NULL, NULL);
     fclose(pub_key_file);
 
-    std::ifstream t(publicKeyFilename);
+    std::ifstream t(pubKeyFilename);
     std::stringstream buffer;
     buffer << t.rdbuf();
     keys.publicKey = std::move(buffer.str());

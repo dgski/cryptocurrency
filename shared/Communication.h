@@ -269,7 +269,8 @@ public:
             }
         }
 
-        if((new_socket = accept(serverFileDescriptor, (sockaddr *)&address, (socklen_t*)&addrlen)) >= 0)
+        new_socket = accept(serverFileDescriptor, (sockaddr *)&address, (socklen_t*)&addrlen);
+        if(new_socket >= 0)
         {
             struct timeval tv;
             tv.tv_sec = 0;
