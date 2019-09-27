@@ -1,85 +1,122 @@
-#include <initializer_list>
+#pragma once
+
 #include <tuple>
-#include <variant>
-#include <iostream>
-#include <sstream>
-#include <vector>
+#include <initializer_list>
+#include <queue>
+#include <mutex>
+#include <thread>
 
 #include "Types.h"
+#include "Utils.h"
 
-struct Logger
+class Loggable
 {
-    std::vector<std::ostream*> streams;
-
-    template<typename T>
-    void push(T text)
+public:
+    str strValue;
+    Loggable(const char* cstr)
     {
-        for(auto s : streams)
-        {
-            *s << text;
-        }
+        strValue += '\"';
+        strValue += cstr;
+        strValue += '\"';
     }
+    Loggable(int i)
+    : strValue(std::to_string(i))
+    {}
 };
 
-using Loggable = std::variant<str, u32, u64, i32, i64>;
-
-struct StreamOut
+class MultiStream
 {
-    std::ostream& os;
+    std::vector<std::ostream*> outputStreams;
 
-    StreamOut(std::ostream& _os)
-    : os(_os)
+public:
+    MultiStream(std::initializer_list<std::ostream*> _outputStreams)
+    : outputStreams(_outputStreams)
     {}
 
     template<typename T>
-    void operator()(const T& val)
+    MultiStream& operator<<(T obj)
     {
-        os << val;
-    }
+        for(std::ostream* output : outputStreams)
+        {
+            *output << obj;
+        }
 
-    void operator()(const str& val)
-    {
-        os << '\"' << val << '\"';
+        return *this;
     }
 };
 
-/*
-void logPlus(std::initializer_list<std::pair<str, Loggable>> logList)
+class Logger
 {
-    std::cout << "{";
-    for(auto it = logList.begin(); it != logList.end(); std::advance(it, 1))
+    MultiStream streams;
+
+    std::mutex logQueueMutex;
+    std::vector<std::vector<std::pair<const char*, Loggable>>> logQueue;
+
+    std::thread outputThread;
+    std::atomic<bool> waitingToDestruct = false;
+
+public:
+    Logger(std::initializer_list<std::ostream*> _streams)
+    : streams(_streams),
+    outputThread(&Logger::runOutput, this)
+    {}
+
+    void log(std::vector<std::pair<const char*, Loggable>> contents)
     {
-        std::cout << it->first;
-        std::cout << ":";
-        std::visit(StreamOut{}, it->second);
-        if(std::next(it) != logList.end())
+        std::lock_guard<std::mutex> lock(logQueueMutex);
+        logQueue.emplace_back(std::move(contents));
+    }
+
+    void runOutput()
+    {
+        while(true)
         {
-            std::cout << ",";
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+            const bool onLastEntries = waitingToDestruct.load();
+
+            std::vector
+                <std::vector
+                    <std::pair<const char*, Loggable>>> currentQueue;
+            {
+                std::lock_guard<std::mutex> lock(logQueueMutex);
+                if(logQueue.empty())
+                {
+                    continue;
+                }
+                currentQueue.swap(logQueue);
+            }
+
+            for(auto& entry : currentQueue)
+            {
+                logEntry(entry);
+            }
+
+            if(onLastEntries)
+            {
+                return;
+            }
         }
     }
-    std::cout << "}\n";
-}
-*/
 
-void toJSONStream(std::ostream& stream, std::initializer_list<std::pair<str, Loggable>>& logList)
-{
-    stream << '{';
-    for(auto it = logList.begin(); it != logList.end(); std::advance(it, 1))
+    void logEntry(std::vector<std::pair<const char*, Loggable>>& entry)
     {
-        stream << it->first;
-        stream << ':';
-        std::visit(StreamOut{stream}, it->second);
-        if(std::next(it) != logList.end())
+        streams << '{';
+        for(auto it = std::begin(entry); it != std::end(entry); std::advance(it, 1))
         {
-            stream << ',';
-        }
-    }
-    stream << "}\n";
-}
+            streams << '\"' << it->first << '\"' << ':' << it->second.strValue;
 
-str toJSONStr(std::initializer_list<std::pair<str, Loggable>> logList)
-{
-    std::stringstream ss;
-    toJSONStream(ss, logList);
-    return ss.str();
-}
+            if(std::next(it) != std::end(entry))
+            {
+                streams << ',';
+            }
+        }
+        streams << "}\n";
+    }
+
+    ~Logger()
+    {
+        waitingToDestruct.store(true);
+        outputThread.join();
+    }
+};
