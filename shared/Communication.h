@@ -18,6 +18,7 @@
 
 #include "Types.h"
 #include "Utils.h"
+#include "Logger.h"
 
 enum class ConnectionStatus
 {
@@ -104,16 +105,14 @@ public:
         return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
     }
 
-    void logMsg(const char* prefix) const
+    void logMsg(const char* direction) const
     {
-        log(
-            "% Message"
-            "{ id:%, reqId:%, size:% }",
-            prefix,
-            id,
-            reqId,
-            size
-        );
+        logger.logInfo({
+            {"event", direction},
+            {"id", id},
+            {"reqId", reqId},
+            {"size", size}
+        });
     }
 };
 
@@ -209,7 +208,7 @@ protected:
     std::unordered_map<u32,Callback> callbacks;
 
     std::unique_ptr<std::mutex> outgoingMutex;
-    std::list<OutboundMessage> outgoingQueue;
+    std::vector<OutboundMessage> outgoingQueue;
 
     u32 getNextReqId()
     {
@@ -237,7 +236,11 @@ class ServerConnection : public Connection
 public:
     void init(const IpInfo& ip)
     {
-        log("Initializing ServerConnection address=%, port=%", ip.address, ip.port);
+        logger.logInfo({
+            {"event", "Initializing ServerConnection"},
+            {"ip.address", ip.address},
+            {"ip.port", ip.port}
+        });
 
         outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
 
@@ -252,12 +255,16 @@ public:
         
         if (bind(serverFileDescriptor,(sockaddr *)&address, sizeof(address)) < 0) 
         {
-            std::cout << "Failed to Bind" << std::endl;
+            logger.logError("Failed to Bind");
+            return;
         }
         if (listen(serverFileDescriptor, 3) < 0) 
         {
-            std::cout << "Failed to Listen" << std::endl;
+            logger.logError("Failed to Listen");
+            return;
         }
+
+        logger.logInfo("ServerConnection established");
 
         run();
     }
@@ -294,7 +301,11 @@ public:
             setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
             sockets.push_back(new_socket);
-            log("ServerConnection: accepted new connection socket=%", new_socket);
+
+            logger.logInfo({
+                {"event", "ServerConnection: accepted new connection socket"},
+                {"new_socket", new_socket}
+            });
         }
     }
 
@@ -328,7 +339,7 @@ public:
             if(potentialMsg.has_value())
             {
                 Message& msg = potentialMsg.value();
-                msg.logMsg("<-");
+                msg.logMsg("incoming");
 
                 auto it = callbacks.find(msg.reqId);
                 if(it != callbacks.end())
@@ -354,25 +365,27 @@ public:
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                OutboundMessage msg;
+                std::vector<OutboundMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
                     if(outgoingQueue.empty())
                     {
                         continue;
                     }
-                    msg = std::move(outgoingQueue.front());
-                    outgoingQueue.pop_front();
+                    currentQueue.swap(outgoingQueue);
                 }
                 
-                msg.message.logMsg("->");
-                if(msg.socket.has_value())
+                for(auto& msg : currentQueue)
                 {
-                    sendToSingle(msg);
-                }
-                else
-                {
-                    sendToAll(msg);
+                    msg.message.logMsg("outgoing");
+                    if(msg.socket.has_value())
+                    {
+                        sendToSingle(msg);
+                    }
+                    else
+                    {
+                        sendToAll(msg);
+                    }
                 }
             }
         });
@@ -394,12 +407,15 @@ public:
                 callbacks[msg.message.reqId] = msg.callback.value();
             }
 
-            msg.message.logMsg("->");
+            msg.message.logMsg("outgoing");
 
             ConnectionStatus status = sendFinalMessage(*it, msg.message);
             if(status == ConnectionStatus::Disconnected)
             {
-                log("Connection closed; could not send message. Deleting connection.");
+                logger.logWarning({
+                    {"event", "Connection closed; could not send message. Deleting."},
+                    {"socket", *it}
+                });
                 sockets.erase(it);
             }
         }
@@ -427,7 +443,11 @@ class ClientConnection : public Connection
 public:
     void init(const IpInfo& ip)
     {
-        log("Initializing ClientConnection address=%, port=%", ip.address, ip.port);
+        logger.logInfo({
+            {"event", "Initializing ClientConnection"},
+            {"ip.address", ip.address},
+            {"ip.port", ip.port}
+        });
 
         outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
 
@@ -436,7 +456,7 @@ public:
         socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
         if (socketFileDescriptor < 0)
         { 
-            log("Socket creation error");
+            logger.logError("Socket creation error");
             return;
         } 
     
@@ -445,13 +465,13 @@ public:
         
         if(inet_pton(AF_INET, ip.address.c_str(), &serv_addr.sin_addr) <= 0)  
         { 
-            log("Invalid address/ Address not supported");
+            logger.logError("Invalid address/ Address not supported");
             return; 
         } 
     
         if (connect(socketFileDescriptor, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
         { 
-            log("Connection Failed");
+            logger.logError("Connection Failed");
             return; 
         }
 
@@ -461,7 +481,7 @@ public:
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 
-        log("ClientConnection established");
+        logger.logInfo("ClientConnection established");
 
         run();
     }
@@ -488,7 +508,7 @@ public:
         if(potentialMsg.has_value())
         {
             Message& msg = potentialMsg.value();
-            msg.logMsg("<-");
+            msg.logMsg("incoming");
             
             auto it = callbacks.find(msg.reqId);
             if(it != callbacks.end())
@@ -515,27 +535,30 @@ public:
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                OutboundMessage msg;
+                std::vector<OutboundMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
                     if(outgoingQueue.empty())
                     {
                         continue;
                     }
-                    msg = std::move(outgoingQueue.front());
-                    outgoingQueue.pop_front();
+                    currentQueue.swap(outgoingQueue);
                 }
 
-                msg.message.logMsg("->");
-                if(msg.message.reqId == 0)
+                for(auto& msg : currentQueue)
                 {
-                    msg.message.reqId = getNextReqId();
+                    msg.message.logMsg("outgoing");
+                    if(msg.message.reqId == 0)
+                    {
+                        msg.message.reqId = getNextReqId();
+                    }
+                    if(msg.callback.has_value())
+                    {
+                        callbacks[msg.message.reqId] = msg.callback.value();
+                    }
+                    sendFinalMessage(socketFileDescriptor, msg.message);
                 }
-                if(msg.callback.has_value())
-                {
-                    callbacks[msg.message.reqId] = msg.callback.value();
-                }
-                sendFinalMessage(socketFileDescriptor, msg.message);
+                
             }
         });
         outgoing.detach();

@@ -4,6 +4,7 @@
 #include "Communication.h"
 #include "Transaction.h"
 #include "Blockchain.h"
+#include "Logger.h"
 
 struct MSG_STRUCT
 {
@@ -55,10 +56,11 @@ struct MSG_MANAGER_MINER_NEWBASEHASH : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MANAGER_MINER_NEWBASEHASH{ newBaseHash: % }",
-            newBaseHash
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MANAGER_MINER_NEWBASEHASH"},
+            {"newBaseHash", newBaseHash}
+        });
     }
 };
 
@@ -88,11 +90,11 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MINER_MANAGER_PROOFOFWORK"
-            "{ proofOfWork:% }",
-            proofOfWork
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MINER_MANAGER_PROOFOFWORK"},
+            {"proofOfWork", proofOfWork}
+        });
     }
 };
 
@@ -123,11 +125,11 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ"
-            "{ numOfTransReq:% }",
-            numOfTransReq
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ"},
+            {"numOfTransReq", numOfTransReq}
+        });
     }
 };
 
@@ -158,11 +160,11 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_A_MANAGER_TRANSACTIONER_TRANSREQ"
-            "{ transactions:% }",
-            transactions.size()
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_A_MANAGER_TRANSACTIONER_TRANSREQ"},
+            {"transactions.size()", (u64)transactions.size()}
+        });
     }
 };
 
@@ -193,8 +195,12 @@ struct MSG_CLIENT_TRANSACTIONER_NEWTRANS : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log("MSG_CLIENT_TRANSACTIONER_NEWTRANS");
-        transaction.logTransaction();
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_CLIENT_TRANSACTIONER_NEWTRANS"},
+            {"transaction.time", transaction.time},
+            {"transaction.amount", transaction.amount}
+        });
     }
 };
 
@@ -222,10 +228,10 @@ struct MSG_MINER_MANAGER_HASHREQUEST : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MINER_MANAGER_HASHREQUEST"
-            "{}"
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MINER_MANAGER_HASHREQUEST"},
+        });
     }
 };
 
@@ -256,12 +262,12 @@ struct MSG_MANAGER_NETWORKER_NEWBLOCK : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MANAGER_NETWORKER_NEWBLOCK"
-            "{ numOfTrans:%, proofOfWork:% }",
-            block.transactions.size(),
-            block.proofOfWork
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MANAGER_NETWORKER_NEWBLOCK"},
+            {"block.transactions.size()", (u64)block.transactions.size()},
+            {"block.proofOfWork", block.proofOfWork}
+        });
     }
 };
 
@@ -293,12 +299,12 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_NETWORKER_NETWORKER_NEWBLOCK"
-            "{ numOfTrans:%, proofOfWork:% }",
-            block.transactions.size(),
-            block.proofOfWork
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_NETWORKER_NETWORKER_NEWBLOCK"},
+            {"block.transactions.size()", (u64)block.transactions.size()},
+            {"block.proofOfWork", block.proofOfWork}
+        });
     }
 };
 
@@ -330,11 +336,11 @@ struct MSG_NETWORKER_NETWORKER_REGISTERME : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_NETWORKER_NETWORKER_REGISTERME"
-            "{ connStr:% }",
-            connStr
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_NETWORKER_NETWORKER_REGISTERME"},
+            {"connStr", connStr}
+        });
     }
 };
 
@@ -367,11 +373,13 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_NETWORKER_MANAGER_NEWBLOCK"
-            "{ block:{}, connId:% }",
-            connId
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_NETWORKER_MANAGER_NEWBLOCK"},
+            {"block.transactions.size()", (u64)block.transactions.size()},
+            {"block.proofOfWork", block.proofOfWork},
+            {"connId", connId}
+        });
     }
 };
 
@@ -403,12 +411,12 @@ struct MSG_MANAGER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MANAGER_NETWORKER_CHAINREQUEST"
-            "{ maxId:%, connId:% }",
-            maxId,
-            connId
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MANAGER_NETWORKER_CHAINREQUEST"},
+            {"connId", connId},
+            {"maxId", maxId}
+        });
     }
 };
 
@@ -439,11 +447,11 @@ struct MSG_NETWORKER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_NETWORKER_NETWORKER_CHAINREQUEST"
-            "{ maxId:% }",
-            maxId
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_NETWORKER_NETWORKER_CHAINREQUEST"},
+            {"maxId", maxId}
+        });
     }
 };
 
@@ -474,11 +482,11 @@ struct MSG_NETWORKER_MANAGER_CHAINREQUEST : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_NETWORKER_MANAGER_CHAINREQUEST"
-            "{ maxId:% }",
-            maxId
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_NETWORKER_MANAGER_CHAINREQUEST"},
+            {"maxId", maxId}
+        });
     }
 };
 
@@ -510,11 +518,11 @@ struct MSG_MANAGER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MANAGER_NETWORKER_CHAIN"
-            "{ chain.size:% }",
-            chain.size()
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MANAGER_NETWORKER_CHAIN"},
+            {"chain.size()", (u64)chain.size()}
+        });
     }
 };
 
@@ -546,11 +554,11 @@ struct MSG_NETWORKER_MANAGER_CHAIN : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_NETWORKER_MANAGER_CHAIN"
-            "{ chain.size:% }",
-            chain.size()
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_NETWORKER_MANAGER_CHAIN"},
+            {"chain.size()", (u64)chain.size()}
+        });
     }
 };
 
@@ -582,11 +590,11 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_NETWORKER_NETWORKER_CHAIN"
-            "{ chain.size:% }",
-            chain.size()
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_NETWORKER_NETWORKER_CHAIN"},
+            {"chain.size()", (u64)chain.size()}
+        });
     }
 };
 
@@ -618,11 +626,11 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-          "MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET"
-          "{ publicWalletKey.lenght():% }",
-          publicWalletKey.length()
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET"},
+            {"hash(publicWalletKey)", (u64)std::hash<str>{}(publicWalletKey)}
+        });
     }
 };
 
@@ -654,10 +662,10 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-          "MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET"
-          "{ amount:% }",
-          amount
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY"},
+            {"amount", amount}
+        });
     }
 };

@@ -7,7 +7,7 @@ int main()
     auto keys = RSAKeyPair::create("private.pem", "public.pem");
     if(!keys.has_value())
     {
-        log("Could not create keypair!");
+        logger.logError("Could not create keypair!");
         return -1;
     }
 
@@ -34,7 +34,12 @@ int main()
             Message msg;
             outgoing.compose(msg);
 
-            connToTransactioner.sendMessage(msg);
+            u64 count;
+            while(count < 1000)
+            {
+                std::cout << count++ << std::endl;
+                connToTransactioner.sendMessage(msg);
+            }
         }
     }
 }

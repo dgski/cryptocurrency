@@ -6,6 +6,7 @@
 #include "Transaction.h"
 #include "Utils.h"
 #include "Communication.h"
+#include "Logger.h"
 
 struct Block
 {
@@ -43,6 +44,11 @@ struct Block
         u64 baseHash = calculateBaseHash();
         if(!validProof(proofOfWork, baseHash))
         {
+            logger.logWarning({
+                {"event", "Block proof is not valid"},
+                {"baseHash", baseHash},
+                {"proofOfWork", proofOfWork}
+            });
             return false;
         }
 
@@ -50,6 +56,7 @@ struct Block
         {
             if(!t.isSignatureValid())
             {
+                logger.logWarning("Transaction signature is not valid");
                 return false;
             }
         }

@@ -2,9 +2,11 @@
 
 Networker::Networker(const char* iniFileName)
 {
-    log("Networker Module Starting");
-
     const std::map<str,str> params = getInitParameters(iniFileName);
+
+    initLogger(params.at("logFileName").c_str());
+
+    logger.logInfo("Networker Module Starting");
 
     connToManager.init(strToIp(params.at("connToManager")));
     connFromOtherNodes.init(strToIp(params.at("connFromOtherNodes")));
@@ -54,7 +56,7 @@ void Networker::processMessage(const Message& msg)
         }
         default:
         {
-            log("Unhandled MSG id=%", msg.id);
+            processUnhandledMessage(msg);
             return;
         }
     }
@@ -80,7 +82,7 @@ void Networker::processNewBlockFromOtherNode(const Message& msg)
 
     if(!incoming.block.isValid())
     {
-        log("Block is invalid");
+        logger.logWarning("Block is invalid");
         return;
     }
 

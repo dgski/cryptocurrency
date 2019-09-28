@@ -2,10 +2,12 @@
 
 Manager::Manager(const char* iniFileName)
 {
-    log("Manager module starting");
-    
     const std::map<str,str> params = getInitParameters(iniFileName);
 
+    initLogger(params.at("logFileName").c_str());
+    
+    logger.logInfo("Manager module starting");
+    
     connFromMiners.init(strToIp(params.at("connFromMiners")));
     connFromTransactioner.init(strToIp(params.at("connFromTransactioner")));
     connFromNetworker.init(strToIp(params.at("connFromNetworker")));
@@ -20,7 +22,7 @@ Manager::Manager(const char* iniFileName)
         throw std::runtime_error("Wallet Keypair could not be read.");
     }
 
-    registerScheduledTask(1000, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         askTransactionerForNewTransactions();
     });
@@ -55,10 +57,11 @@ void Manager::processMessage(const Message& msg)
         case MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET::id:
         {
             processTransactionWalletInquiry(msg);
+            return;
         }
         default:
         {
-            log("Unhandled MSG id=%", msg.id);
+            processUnhandledMessage(msg);
             return;
         }
     }
@@ -79,7 +82,7 @@ void Manager::askTransactionerForNewTransactions()
         processTransactionRequestReply(reply);
     });
 
-    registerScheduledTask(1000, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         askTransactionerForNewTransactions();
     });
@@ -98,7 +101,10 @@ void Manager::processTransactionRequestReply(const Message& msg)
     if(newBaseHash != currentBaseHash)
     {
         currentBaseHash = newBaseHash;
-        log("baseHash has changed, Propagating to Miners.");
+        logger.logInfo({
+            {"event", "currentBaseHash has changed, Propagating to Miners."},
+            {"currentBaseHash", currentBaseHash}   
+        });
         sendBaseHashToMiners();
     }
 
@@ -167,7 +173,12 @@ void Manager::processIncomingProofOfWork(const Message& msg)
 
     if(validProof(incoming.proofOfWork, currentBaseHash))
     {
-        log("Proof is valid, Block has been mined, Sending to Networker for Propagation.");
+        logger.logInfo({
+            {"event", "Proof valid, Block mined, Propagating."},
+            {"currentBaseHash", currentBaseHash},
+            {"proofOfWork", incoming.proofOfWork}
+        });
+
         currentBlock.proofOfWork = incoming.proofOfWork;
 
         pushBlock(currentBlock);
@@ -177,7 +188,7 @@ void Manager::processIncomingProofOfWork(const Message& msg)
         outgoing.block = currentBlock;
         connFromNetworker.sendMessage(outgoing.msg());
         
-        log("Starting work on next block.");
+        logger.logInfo("Starting work on next block.");
         
         Block newBlock;
         newBlock.id = currentBlock.id + 1;
@@ -204,7 +215,11 @@ void Manager::processPotentialWinningBlock(const Message& msg)
 
     if(currentBlock.id > incoming.block.id)
     {
-        log("Block id is lower than ours; ignore");
+        logger.logInfo({
+            {"event", "Block id is lower than ours; ignore"},
+            {"currentBlock.id", currentBlock.id},
+            {"incoming.block.id", incoming.block.id}
+        });
         return;
     }
 
@@ -225,11 +240,11 @@ void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
     auto transactionHashes = getValidTransHashes(incoming.chain);
     if(!transactionHashes.has_value())
     {
-        log("Chain is not valid. Aborting.");
+        logger.logWarning("Chain is not valid. Aborting.");
         return;
     }
     
-    log("Chain is valid. Using it from now on.");
+    logger.logWarning("Chain is valid. Using it from now on.");
     chain.clear();
     for(Block& block : incoming.chain)
     {
@@ -288,7 +303,7 @@ std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& ch
     {
         if(!block.isValid())
         {
-            log("Block is invalid. Aborting");
+            logger.logWarning("Block is invalid. Aborting");
             return std::nullopt;
         }
 
@@ -296,10 +311,14 @@ std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& ch
         {
             hashOfLastBlock = block.calculateFullHash();
         }
-        else if(block.hashOfLastBlock != hashOfLastBlock)
+        else if(block.hashOfLastBlock != hashOfLastBlock.value())
         {
-            log("Logical error: hashOfLastBlock does not match.");
-            log("Block is invalid. Aborting");
+            logger.logWarning({
+                {"event", "hashOfLastBlock does not match."},
+                {"block.hashOfLastBlock", block.hashOfLastBlock},
+                {"hashOfLastBlock", hashOfLastBlock.value()}
+            });
+            logger.logWarning("Block is invalid. Aborting");
             return std::nullopt;
         }
 

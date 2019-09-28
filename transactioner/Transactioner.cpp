@@ -2,9 +2,11 @@
 
 Transactioner::Transactioner(const char* iniFileName)
 {
-    log("Transactioner Module Starting");
-
     const std::map<str,str> params = getInitParameters(iniFileName);
+
+    initLogger(params.at("logFileName").c_str());
+
+    logger.logInfo("Transactioner Module Starting");
 
     connToManager.init(strToIp(params.at("connToManager")));
     connFromClients.init(strToIp(params.at("connFromClients")));
@@ -27,7 +29,7 @@ void Transactioner::processMessage(const Message& msg)
         }
         default:
         {
-            log("Unhandled MSG id=%", msg.id);
+            processUnhandledMessage(msg);
             return;
         }
     }
@@ -40,7 +42,7 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
     if(waitingTransactions.empty())
     {
-        log("No waiting transactions");
+        logger.logInfo("No waiting transactions");
     }
     else if(waitingTransactions.size() <= incoming.numOfTransReq)
     {
@@ -59,7 +61,10 @@ void Transactioner::processRequestForTransactions(const Message& msg)
         );
     }
     
-    log("Sending % transactions to Manager", outgoing.transactions.size());
+    logger.logInfo({
+        {"event", "Sending transactions to Manager"},
+        {"outgoing.transactions.size()", (u64)outgoing.transactions.size()}
+    });
     connToManager.sendMessage(outgoing.msg(msg.reqId));
 }
 
@@ -69,7 +74,7 @@ void Transactioner::processAddNewTransaction(const Message& msg)
 
     if(!incoming.transaction.isSignatureValid())
     {
-        log("Signature Invalid. Rejecting Transaction.");
+        logger.logWarning("Signature Invalid. Rejecting Transaction.");
         return;
     }
 
@@ -92,11 +97,18 @@ void Transactioner::processAddNewTransaction_Finalize(
 
     if(transaction.amount > incoming.amount)
     {
-        log("Not enough funds in wallet. Rejecting Transaction.");
+        logger.logInfo({
+            {"event", "Not enough funds in wallet. Rejecting Transaction."},
+            {"transaction.amount", transaction.amount},
+            {"wallet.amount", incoming.amount}
+        });
         return;
     }
     
-    log("Adding transaction");
+    logger.logInfo("Adding transaction");
     waitingTransactions.push_back(transaction);
-    log("Total waiting transactions=%", waitingTransactions.size());
+    logger.logInfo({
+        {"event", "Total waiting transactions report"},
+        {"waitingTransactions.size()", (u64)waitingTransactions.size()}
+    });
 }

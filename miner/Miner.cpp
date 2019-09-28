@@ -1,10 +1,12 @@
 #include "Miner.h"
 
-Miner::Miner(const char* iniFileName)
+Miner::Miner(const char* iniFileName) : Module()
 {
-    log("Miner Module Starting");
-
     const std::map<str,str> params = getInitParameters(iniFileName);
+    
+    initLogger(params.at("logFileName").c_str());
+    
+    logger.logInfo("Miner Module Starting");
 
     connToManager.init(strToIp(params.at("connToManager")));
     registerConnections({&connToManager});
@@ -25,7 +27,7 @@ void Miner::processMessage(const Message& msg)
         }
         default:
         {
-            log("Unhandled MSG id=%", msg.id);
+            processUnhandledMessage(msg);
             return;
         }
     }
@@ -33,10 +35,12 @@ void Miner::processMessage(const Message& msg)
 
 void Miner::startMining()
 {
+    logger.logInfo("Starting mining");
+
     currentlyMining = true;
     std::thread t(&Miner::mine, this);
     t.detach();
-    registerScheduledTask(100, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         checkProof();
     });
@@ -44,6 +48,8 @@ void Miner::startMining()
 
 void Miner::stopMining()
 {
+    logger.logInfo("Stopping mining");
+
     currentlyMining = false;
 }
 
@@ -79,7 +85,10 @@ void Miner::checkProof()
     {
         const u64 proofValue = proof.get();
         stopMining();
-        log("Found valid proof=%, Sending to Manager", proofValue);
+        logger.logInfo({
+            {"event", "Found valid proof. Sending to Manager"},
+            {"proof", proofValue}
+        });
 
         MSG_MINER_MANAGER_PROOFOFWORK outgoing;
         outgoing.proofOfWork = proofValue;
@@ -88,7 +97,7 @@ void Miner::checkProof()
         return;
     }
 
-    registerScheduledTask(100, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         checkProof();
     });
@@ -107,7 +116,7 @@ void Miner::processManagerNewBaseHash(const Message& msg)
 
 void Miner::requestNewBaseHash()
 {
-    log("Requesting new base hash");
+    logger.logInfo("Requesting new base hash");
     MSG_MINER_MANAGER_HASHREQUEST outgoing;
     connToManager.sendMessage(outgoing.msg());
 }

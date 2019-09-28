@@ -49,28 +49,6 @@ size_t hashVector(const std::vector<T>& data, H hashFunction)
     return seed;
 }
 
-inline void log(const char* fmt)
-{
-    std::cout << fmt << std::endl;
-}
-
-template<typename Arg, typename... Args>
-inline void log(const char* fmt, Arg arg, Args... args)
-{
-    while(*fmt)
-    {
-        if(*fmt == '%')
-        {
-            std::cout << arg;
-            log(fmt + 1, args...);
-            return;
-        }
-
-        std::cout << *fmt;
-        fmt += 1;
-    }
-}
-
 struct IpInfo
 {
     str address;
@@ -82,3 +60,5 @@ IpInfo strToIp(str s);
 std::vector<str> splitStr(const str& input);
 
 u64 getCurrentUnixTime();
+
+constexpr u64 ONE_SECOND = 1000000;
