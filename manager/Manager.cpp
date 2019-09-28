@@ -2,7 +2,7 @@
 
 Manager::Manager(const char* iniFileName)
 {
-    logger.log("Manager module starting");
+    logger.logInfo("Manager module starting");
     
     const std::map<str,str> params = getInitParameters(iniFileName);
 
@@ -186,7 +186,7 @@ void Manager::processIncomingProofOfWork(const Message& msg)
         outgoing.block = currentBlock;
         connFromNetworker.sendMessage(outgoing.msg());
         
-        logger.log("Starting work on next block.");
+        logger.logInfo("Starting work on next block.");
         
         Block newBlock;
         newBlock.id = currentBlock.id + 1;
@@ -238,11 +238,11 @@ void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
     auto transactionHashes = getValidTransHashes(incoming.chain);
     if(!transactionHashes.has_value())
     {
-        logger.log("Chain is not valid. Aborting.");
+        logger.logWarning("Chain is not valid. Aborting.");
         return;
     }
     
-    logger.log("Chain is valid. Using it from now on.");
+    logger.logWarning("Chain is valid. Using it from now on.");
     chain.clear();
     for(Block& block : incoming.chain)
     {
@@ -301,7 +301,7 @@ std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& ch
     {
         if(!block.isValid())
         {
-            logger.log("Block is invalid. Aborting");
+            logger.logWarning("Block is invalid. Aborting");
             return std::nullopt;
         }
 
@@ -316,7 +316,7 @@ std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& ch
                 {"block.hashOfLastBlock", block.hashOfLastBlock},
                 {"hashOfLastBlock", hashOfLastBlock.value()}
             });
-            logger.log("Block is invalid. Aborting");
+            logger.logWarning("Block is invalid. Aborting");
             return std::nullopt;
         }
 

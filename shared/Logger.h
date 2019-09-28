@@ -171,10 +171,22 @@ public:
         log(LogLevel::Error, contents);
     }
 
-    void log(str entry)
+    void logInfo(str entry)
     {   
         std::vector<std::pair<const char*, Loggable>> contents{{"event", entry}};
         log(LogLevel::Info, contents);
+    }
+    
+    void logWarning(str entry)
+    {   
+        std::vector<std::pair<const char*, Loggable>> contents{{"event", entry}};
+        log(LogLevel::Warning, contents);
+    }
+
+    void logError(str entry)
+    {   
+        std::vector<std::pair<const char*, Loggable>> contents{{"event", entry}};
+        log(LogLevel::Error, contents);
     }
 
     void logEntry(WaitingLogEntry& entry)

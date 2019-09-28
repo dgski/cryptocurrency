@@ -2,7 +2,7 @@
 
 Miner::Miner(const char* iniFileName) : Module()
 {
-    logger.log("Miner Module Starting");
+    logger.logInfo("Miner Module Starting");
 
     const std::map<str,str> params = getInitParameters(iniFileName);
 
@@ -33,7 +33,7 @@ void Miner::processMessage(const Message& msg)
 
 void Miner::startMining()
 {
-    logger.log("Starting mining");
+    logger.logInfo("Starting mining");
 
     currentlyMining = true;
     std::thread t(&Miner::mine, this);
@@ -46,7 +46,7 @@ void Miner::startMining()
 
 void Miner::stopMining()
 {
-    logger.log("Stopping mining");
+    logger.logInfo("Stopping mining");
 
     currentlyMining = false;
 }
@@ -114,7 +114,7 @@ void Miner::processManagerNewBaseHash(const Message& msg)
 
 void Miner::requestNewBaseHash()
 {
-    logger.log("Requesting new base hash");
+    logger.logInfo("Requesting new base hash");
     MSG_MINER_MANAGER_HASHREQUEST outgoing;
     connToManager.sendMessage(outgoing.msg());
 }
