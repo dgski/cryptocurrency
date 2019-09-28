@@ -34,7 +34,12 @@ int main()
             Message msg;
             outgoing.compose(msg);
 
-            connToTransactioner.sendMessage(msg);
+            u64 count;
+            while(count < 1000)
+            {
+                std::cout << count++ << std::endl;
+                connToTransactioner.sendMessage(msg);
+            }
         }
     }
 }

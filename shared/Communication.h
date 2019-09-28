@@ -208,7 +208,7 @@ protected:
     std::unordered_map<u32,Callback> callbacks;
 
     std::unique_ptr<std::mutex> outgoingMutex;
-    std::list<OutboundMessage> outgoingQueue;
+    std::vector<OutboundMessage> outgoingQueue;
 
     u32 getNextReqId()
     {
@@ -352,25 +352,27 @@ public:
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                OutboundMessage msg;
+                std::vector<OutboundMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
                     if(outgoingQueue.empty())
                     {
                         continue;
                     }
-                    msg = std::move(outgoingQueue.front());
-                    outgoingQueue.pop_front();
+                    currentQueue.swap(outgoingQueue);
                 }
                 
-                msg.message.logMsg("outgoing");
-                if(msg.socket.has_value())
+                for(auto& msg : currentQueue)
                 {
-                    sendToSingle(msg);
-                }
-                else
-                {
-                    sendToAll(msg);
+                    msg.message.logMsg("outgoing");
+                    if(msg.socket.has_value())
+                    {
+                        sendToSingle(msg);
+                    }
+                    else
+                    {
+                        sendToAll(msg);
+                    }
                 }
             }
         });
@@ -513,27 +515,30 @@ public:
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                OutboundMessage msg;
+                std::vector<OutboundMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
                     if(outgoingQueue.empty())
                     {
                         continue;
                     }
-                    msg = std::move(outgoingQueue.front());
-                    outgoingQueue.pop_front();
+                    currentQueue.swap(outgoingQueue);
                 }
 
-                msg.message.logMsg("outgoing");
-                if(msg.message.reqId == 0)
+                for(auto& msg : currentQueue)
                 {
-                    msg.message.reqId = getNextReqId();
+                    msg.message.logMsg("outgoing");
+                    if(msg.message.reqId == 0)
+                    {
+                        msg.message.reqId = getNextReqId();
+                    }
+                    if(msg.callback.has_value())
+                    {
+                        callbacks[msg.message.reqId] = msg.callback.value();
+                    }
+                    sendFinalMessage(socketFileDescriptor, msg.message);
                 }
-                if(msg.callback.has_value())
-                {
-                    callbacks[msg.message.reqId] = msg.callback.value();
-                }
-                sendFinalMessage(socketFileDescriptor, msg.message);
+                
             }
         });
         outgoing.detach();
