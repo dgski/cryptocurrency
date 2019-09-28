@@ -2,10 +2,12 @@
 
 Manager::Manager(const char* iniFileName)
 {
-    logger.logInfo("Manager module starting");
-    
     const std::map<str,str> params = getInitParameters(iniFileName);
 
+    initLogger(params.at("logFileName").c_str());
+    
+    logger.logInfo("Manager module starting");
+    
     connFromMiners.init(strToIp(params.at("connFromMiners")));
     connFromTransactioner.init(strToIp(params.at("connFromTransactioner")));
     connFromNetworker.init(strToIp(params.at("connFromNetworker")));

@@ -2,9 +2,11 @@
 
 Transactioner::Transactioner(const char* iniFileName)
 {
-    logger.logInfo("Transactioner Module Starting");
-
     const std::map<str,str> params = getInitParameters(iniFileName);
+
+    initLogger(params.at("logFileName").c_str());
+
+    logger.logInfo("Transactioner Module Starting");
 
     connToManager.init(strToIp(params.at("connToManager")));
     connFromClients.init(strToIp(params.at("connFromClients")));

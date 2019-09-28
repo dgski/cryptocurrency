@@ -33,7 +33,12 @@ class Module
 public:
     Module()
     {
-        logFile.open("miner_log.json", std::ios_base::openmode::_S_app);
+        
+    }
+
+    void initLogger(const char* logFileName)
+    {
+        logFile.open(logFileName, std::ios_base::openmode::_S_app);
         if(!logFile.is_open())
         {
             throw std::runtime_error("Could not open file!");

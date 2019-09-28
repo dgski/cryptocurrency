@@ -2,9 +2,11 @@
 
 Miner::Miner(const char* iniFileName) : Module()
 {
-    logger.logInfo("Miner Module Starting");
-
     const std::map<str,str> params = getInitParameters(iniFileName);
+    
+    initLogger(params.at("logFileName").c_str());
+    
+    logger.logInfo("Miner Module Starting");
 
     connToManager.init(strToIp(params.at("connToManager")));
     registerConnections({&connToManager});

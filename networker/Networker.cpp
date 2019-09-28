@@ -2,9 +2,11 @@
 
 Networker::Networker(const char* iniFileName)
 {
-    logger.logInfo("Networker Module Starting");
-
     const std::map<str,str> params = getInitParameters(iniFileName);
+
+    initLogger(params.at("logFileName").c_str());
+
+    logger.logInfo("Networker Module Starting");
 
     connToManager.init(strToIp(params.at("connToManager")));
     connFromOtherNodes.init(strToIp(params.at("connFromOtherNodes")));
