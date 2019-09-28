@@ -66,6 +66,14 @@ public:
         return *this;
     }
 
+    void flush()
+    {
+        for(std::ostream* output : outputStreams)
+        {
+            output->flush();
+        }
+    }
+
     friend class Logger;
 };
 

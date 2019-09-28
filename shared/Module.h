@@ -29,17 +29,18 @@ class Module
     std::vector<ServerConnection*> serverConnections;
     std::vector<ClientConnection*> clientConnections;
     std::list<ScheduledTask> scheduledTasks;
+    std::ofstream logFile;
 public:
     Module()
     {
-        //std::ofstream file{"test.txt", std::ios_base::openmode::_S_app};
-        //if(!file.is_open())
-        //{
-        //    throw std::runtime_error("Could not open file!");
-        //}
+        logFile.open("miner_log.json", std::ios_base::openmode::_S_app);
+        if(!logFile.is_open())
+        {
+            throw std::runtime_error("Could not open file!");
+        }
         logger.addOutputStream(&std::cout);
+        logger.addOutputStream(&logFile);
         logger.run();
-        //logger.streams.addOutputStream(&file);
     }
 
     virtual void processMessage(const Message& msg) = 0;
