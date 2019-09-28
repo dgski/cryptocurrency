@@ -4,6 +4,7 @@
 #include "Communication.h"
 #include "Transaction.h"
 #include "Blockchain.h"
+#include "Logger.h"
 
 struct MSG_STRUCT
 {
@@ -55,10 +56,11 @@ struct MSG_MANAGER_MINER_NEWBASEHASH : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MANAGER_MINER_NEWBASEHASH{ newBaseHash: % }",
-            newBaseHash
-        );
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MANAGER_MINER_NEWBASEHASH"},
+            {"newBaseHash", newBaseHash}
+        });
     }
 };
 
@@ -88,11 +90,10 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
 
     void logMsg() const override
     {
-        log(
-            "MSG_MINER_MANAGER_PROOFOFWORK"
-            "{ proofOfWork:% }",
-            proofOfWork
-        );
+        logger.logInfo({
+            {"name", "MSG_MINER_MANAGER_PROOFOFWORK"},
+            {"proofOfWork", proofOfWork}
+        });
     }
 };
 

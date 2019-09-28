@@ -1,8 +1,8 @@
 #include "Miner.h"
 
-Miner::Miner(const char* iniFileName)
+Miner::Miner(const char* iniFileName) : Module()
 {
-    log("Miner Module Starting");
+    logger.log("Miner Module Starting");
 
     const std::map<str,str> params = getInitParameters(iniFileName);
 
@@ -25,7 +25,7 @@ void Miner::processMessage(const Message& msg)
         }
         default:
         {
-            log("Unhandled MSG id=%", msg.id);
+            logger.logError({{"event", "Unhandled msgId."},{"msgId", msg.id}});
             return;
         }
     }
@@ -33,6 +33,8 @@ void Miner::processMessage(const Message& msg)
 
 void Miner::startMining()
 {
+    logger.log("Starting mining");
+
     currentlyMining = true;
     std::thread t(&Miner::mine, this);
     t.detach();
@@ -44,6 +46,8 @@ void Miner::startMining()
 
 void Miner::stopMining()
 {
+    logger.log("Stopping mining");
+
     currentlyMining = false;
 }
 
@@ -79,7 +83,10 @@ void Miner::checkProof()
     {
         const u64 proofValue = proof.get();
         stopMining();
-        log("Found valid proof=%, Sending to Manager", proofValue);
+        logger.logInfo({
+            {"event", "Found valid proof. Sending to Manager"},
+            {"proof", proofValue}
+        });
 
         MSG_MINER_MANAGER_PROOFOFWORK outgoing;
         outgoing.proofOfWork = proofValue;
@@ -107,7 +114,7 @@ void Miner::processManagerNewBaseHash(const Message& msg)
 
 void Miner::requestNewBaseHash()
 {
-    log("Requesting new base hash");
+    logger.log("Requesting new base hash");
     MSG_MINER_MANAGER_HASHREQUEST outgoing;
     connToManager.sendMessage(outgoing.msg());
 }

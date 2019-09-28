@@ -8,6 +8,7 @@
 #include <set>
 #include <list>
 #include <variant>
+#include <fstream>
 
 #include "../shared/Types.h"
 #include "../shared/Utils.h"
@@ -15,6 +16,7 @@
 #include "../shared/Transaction.h"
 #include "../shared/Messages.h"
 #include "../shared/Blockchain.h"
+#include "../shared/Logger.h"
 
 struct ScheduledTask
 {
@@ -28,6 +30,18 @@ class Module
     std::vector<ClientConnection*> clientConnections;
     std::list<ScheduledTask> scheduledTasks;
 public:
+    Module()
+    {
+        //std::ofstream file{"test.txt", std::ios_base::openmode::_S_app};
+        //if(!file.is_open())
+        //{
+        //    throw std::runtime_error("Could not open file!");
+        //}
+        logger.addOutputStream(&std::cout);
+        logger.run();
+        //logger.streams.addOutputStream(&file);
+    }
+
     virtual void processMessage(const Message& msg) = 0;
     void run();
 

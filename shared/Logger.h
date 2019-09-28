@@ -13,16 +13,39 @@ class Loggable
 {
 public:
     str strValue;
+    
     Loggable(const char* cstr)
     {
         strValue += '\"';
         strValue += cstr;
         strValue += '\"';
     }
+    
+    Loggable(str cstr)
+    {
+        strValue += '\"';
+        strValue += cstr;
+        strValue += '\"';
+    }
+    
     Loggable(i32 i)
     : strValue(std::to_string(i))
     {}
+    
+    Loggable(i64 i)
+    : strValue(std::to_string(i))
+    {}
+
+    Loggable(u32 i)
+    : strValue(std::to_string(i))
+    {}
+
+    Loggable(u64 i)
+    : strValue(std::to_string(i))
+    {}
 };
+
+class Logger;
 
 class MultiStream : public std::ostream
 {
@@ -43,20 +66,17 @@ public:
         return *this;
     }
 
-    void addOutputStream(std::ostream* os)
-    {
-        outputStreams.push_back(os);
-    }
+    friend class Logger;
 };
 
-enum class LogLevel { Info, Alert, Error };
+enum class LogLevel { Info, Warning, Error };
 
 static const char* toJSONString(LogLevel level)
 {
     switch(level)
     {
         case LogLevel::Info: return "\"info\"";
-        case LogLevel::Alert: return "\"alert\"";
+        case LogLevel::Warning: return "\"warning\"";
         case LogLevel::Error: return "\"error\"";
         default: return "unmapped";
     }
@@ -74,25 +94,8 @@ class Logger
     std::mutex logQueueMutex;
     std::vector<WaitingLogEntry> logQueue;
 
-    std::thread outputThread;
+    std::shared_ptr<std::thread> outputThread;
     std::atomic<bool> waitingToDestruct = false;
-
-public:
-    MultiStream streams;
-
-    Logger()
-    : outputThread(&Logger::runOutput, this)
-    {}
-
-    void log(const LogLevel level, std::vector<std::pair<const char*, Loggable>> contents)
-    {
-        const u64 time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch()
-        ).count();
-
-        std::lock_guard<std::mutex> lock(logQueueMutex);
-        logQueue.push_back({level, time, std::move(contents)});
-    }
 
     void runOutput()
     {
@@ -124,6 +127,48 @@ public:
         }
     }
 
+    void log(const LogLevel level, std::vector<std::pair<const char*, Loggable>>& contents)
+    {
+        const u64 time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+        ).count();
+
+        std::lock_guard<std::mutex> lock(logQueueMutex);
+        logQueue.push_back({level, time, std::move(contents)});
+    }
+
+    MultiStream streams;
+public:
+
+    Logger()
+    {}
+
+    void run()
+    {
+        outputThread = std::make_shared<std::thread>(&Logger::runOutput, this);
+    }
+
+    void logInfo(std::vector<std::pair<const char*, Loggable>> contents)
+    {
+        log(LogLevel::Info, contents);
+    }
+
+    void logWarning(std::vector<std::pair<const char*, Loggable>> contents)
+    {
+        log(LogLevel::Warning, contents);
+    }
+
+    void logError(std::vector<std::pair<const char*, Loggable>> contents)
+    {
+        log(LogLevel::Error, contents);
+    }
+
+    void log(str entry)
+    {   
+        std::vector<std::pair<const char*, Loggable>> contents{{"event", entry}};
+        log(LogLevel::Info, contents);
+    }
+
     void logEntry(WaitingLogEntry& entry)
     {
         streams << '{';
@@ -138,12 +183,20 @@ public:
                 streams << ',';
             }
         }
-        streams << "}\n";
+        streams << '}' << '\n';
+        streams.flush();
+    }
+
+    void addOutputStream(std::ostream* os)
+    {
+        streams.outputStreams.push_back(os);
     }
 
     ~Logger()
     {
         waitingToDestruct.store(true);
-        outputThread.join();
+        outputThread->join();
     }
 };
+
+inline Logger logger;

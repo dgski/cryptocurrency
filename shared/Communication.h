@@ -18,6 +18,7 @@
 
 #include "Types.h"
 #include "Utils.h"
+#include "Logger.h"
 
 enum class ConnectionStatus
 {
@@ -104,16 +105,14 @@ public:
         return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
     }
 
-    void logMsg(const char* prefix) const
+    void logMsg(const char* direction) const
     {
-        log(
-            "% Message"
-            "{ id:%, reqId:%, size:% }",
-            prefix,
-            id,
-            reqId,
-            size
-        );
+        logger.logInfo({
+            {"event", direction},
+            {"id", id},
+            {"reqId", reqId},
+            {"size", size}
+        });
     }
 };
 
@@ -327,7 +326,7 @@ public:
             if(potentialMsg.has_value())
             {
                 Message& msg = potentialMsg.value();
-                msg.logMsg("<-");
+                msg.logMsg("incoming");
 
                 auto it = callbacks.find(msg.reqId);
                 if(it != callbacks.end())
@@ -364,7 +363,7 @@ public:
                     outgoingQueue.pop_front();
                 }
                 
-                msg.message.logMsg("->");
+                msg.message.logMsg("outgoing");
                 if(msg.socket.has_value())
                 {
                     sendToSingle(msg);
@@ -393,7 +392,7 @@ public:
                 callbacks[msg.message.reqId] = msg.callback.value();
             }
 
-            msg.message.logMsg("->");
+            msg.message.logMsg("outgoing");
 
             ConnectionStatus status = sendFinalMessage(*it, msg.message);
             if(status == ConnectionStatus::Disconnected)
@@ -426,7 +425,7 @@ class ClientConnection : public Connection
 public:
     void init(const IpInfo& ip)
     {
-        log("Initializing ClientConnection address=%, port=%", ip.address, ip.port);
+        //log("Initializing ClientConnection address=%, port=%", ip.address, ip.port);
 
         outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
 
@@ -460,7 +459,7 @@ public:
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 
-        log("ClientConnection established");
+        //log("ClientConnection established");
 
         run();
     }
@@ -487,7 +486,7 @@ public:
         if(potentialMsg.has_value())
         {
             Message& msg = potentialMsg.value();
-            msg.logMsg("<-");
+            msg.logMsg("incoming");
             
             auto it = callbacks.find(msg.reqId);
             if(it != callbacks.end())
@@ -525,7 +524,7 @@ public:
                     outgoingQueue.pop_front();
                 }
 
-                msg.message.logMsg("->");
+                msg.message.logMsg("outgoing");
                 if(msg.message.reqId == 0)
                 {
                     msg.message.reqId = getNextReqId();
