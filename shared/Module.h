@@ -44,6 +44,15 @@ public:
     }
 
     virtual void processMessage(const Message& msg) = 0;
+
+    void processUnhandledMessage(const Message& msg)
+    {
+        logger.logInfo({
+            {"event", "Unhandled MSG"},
+            {"msgId", msg.id}
+        });
+    }
+
     void run();
 
     void registerServerConnection(ServerConnection* conn)
