@@ -236,7 +236,11 @@ class ServerConnection : public Connection
 public:
     void init(const IpInfo& ip)
     {
-        log("Initializing ServerConnection address=%, port=%", ip.address, ip.port);
+        logger.logInfo({
+            {"event", "Initializing ServerConnection"},
+            {"ip.address", ip.address},
+            {"ip.port", ip.port}
+        });
 
         outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
 
@@ -251,12 +255,16 @@ public:
         
         if (bind(serverFileDescriptor,(sockaddr *)&address, sizeof(address)) < 0) 
         {
-            std::cout << "Failed to Bind" << std::endl;
+            logger.logError("Failed to Bind");
+            return;
         }
         if (listen(serverFileDescriptor, 3) < 0) 
         {
-            std::cout << "Failed to Listen" << std::endl;
+            logger.logError("Failed to Listen");
+            return;
         }
+
+        logger.logInfo("ServerConnection established");
 
         run();
     }
@@ -292,7 +300,11 @@ public:
             setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
             sockets.push_back(new_socket);
-            log("ServerConnection: accepted new connection socket=%", new_socket);
+
+            logger.logInfo({
+                {"event", "ServerConnection: accepted new connection socket"},
+                {"new_socket", new_socket}
+            });
         }
     }
 
@@ -399,7 +411,10 @@ public:
             ConnectionStatus status = sendFinalMessage(*it, msg.message);
             if(status == ConnectionStatus::Disconnected)
             {
-                log("Connection closed; could not send message. Deleting connection.");
+                logger.logWarning({
+                    {"event", "Connection closed; could not send message. Deleting."},
+                    {"socket", *it}
+                });
                 sockets.erase(it);
             }
         }
@@ -427,7 +442,11 @@ class ClientConnection : public Connection
 public:
     void init(const IpInfo& ip)
     {
-        //log("Initializing ClientConnection address=%, port=%", ip.address, ip.port);
+        logger.logInfo({
+            {"event", "Initializing ClientConnection"},
+            {"ip.address", ip.address},
+            {"ip.port", ip.port}
+        });
 
         outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
 
@@ -436,7 +455,7 @@ public:
         socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
         if (socketFileDescriptor < 0)
         { 
-            log("Socket creation error");
+            logger.logError("Socket creation error");
             return;
         } 
     
@@ -445,13 +464,13 @@ public:
         
         if(inet_pton(AF_INET, ip.address.c_str(), &serv_addr.sin_addr) <= 0)  
         { 
-            log("Invalid address/ Address not supported");
+            logger.logError("Invalid address/ Address not supported");
             return; 
         } 
     
         if (connect(socketFileDescriptor, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
         { 
-            log("Connection Failed");
+            logger.logError("Connection Failed");
             return; 
         }
 
@@ -461,7 +480,7 @@ public:
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 
-        //log("ClientConnection established");
+        logger.logInfo("ClientConnection established");
 
         run();
     }
