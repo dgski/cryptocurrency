@@ -25,7 +25,7 @@ void Miner::processMessage(const Message& msg)
         }
         default:
         {
-            logger.logError({{"event", "Unhandled msgId."},{"msgId", msg.id}});
+            processUnhandledMessage(msg);
             return;
         }
     }
@@ -38,7 +38,7 @@ void Miner::startMining()
     currentlyMining = true;
     std::thread t(&Miner::mine, this);
     t.detach();
-    registerScheduledTask(100, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         checkProof();
     });
@@ -95,7 +95,7 @@ void Miner::checkProof()
         return;
     }
 
-    registerScheduledTask(100, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         checkProof();
     });

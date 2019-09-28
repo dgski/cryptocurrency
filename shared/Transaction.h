@@ -22,19 +22,6 @@ struct Transaction
         msg.compose(time, sender, recipiant, amount, signature);
     }
 
-    void logTransaction() const
-    {
-        log(
-            "Transaction"
-            "{ time:%, sender:%, recipiant:%, amount:%, signature:% }",
-            time,
-            sender,
-            recipiant,
-            amount,
-            signature
-        );
-    }
-
     void sign(const RSAKeyPair& keys)
     {
         size_t hashValue{ Transaction::hashValue(*this) };

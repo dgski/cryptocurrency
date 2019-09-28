@@ -137,12 +137,8 @@ class Logger
 
     void log(const LogLevel level, std::vector<std::pair<const char*, Loggable>>& contents)
     {
-        const u64 time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch()
-        ).count();
-
         std::lock_guard<std::mutex> lock(logQueueMutex);
-        logQueue.push_back({level, time, std::move(contents)});
+        logQueue.push_back({level, getCurrentUnixTime(), std::move(contents)});
     }
 
     MultiStream streams;

@@ -20,7 +20,7 @@ Manager::Manager(const char* iniFileName)
         throw std::runtime_error("Wallet Keypair could not be read.");
     }
 
-    registerScheduledTask(1000, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         askTransactionerForNewTransactions();
     });
@@ -80,7 +80,7 @@ void Manager::askTransactionerForNewTransactions()
         processTransactionRequestReply(reply);
     });
 
-    registerScheduledTask(1000, [this]()
+    registerScheduledTask(ONE_SECOND, [this]()
     {
         askTransactionerForNewTransactions();
     });
