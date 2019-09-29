@@ -52,8 +52,8 @@ public:
         logger.addOutputStream(&logFile);
         logger.run();
 
-        //connToLogCollector.init(strToIp(params.at("connToLogCollector")));
-        //registerClientConnection(&connToLogCollector);
+        connToLogCollector.init(strToIp(params.at("connToLogCollector")));
+        registerClientConnection(&connToLogCollector);
         registerScheduledTask(30 * ONE_SECOND, [this]()
         {
             prepareLogArchive();
@@ -108,13 +108,12 @@ public:
     void prepareLogArchive()
     {
         logger.logInfo("Preparing log Archive");
-
+        
         logger.endLogging();
         logFile.close();
 
-        logger.logInfo("Logging paused");
-
-        std::filesystem::rename(logFileName, logFileName + ".aside");
+        std::filesystem::rename(logFileName, logFileName + ".archive");
+        
         logFile.open(logFileName.c_str(), std::ios_base::openmode::_S_app);
         if(!logFile.is_open())
         {
@@ -124,8 +123,6 @@ public:
         logger.addOutputStream(&std::cout);
         logger.addOutputStream(&logFile);
         logger.run();
-
-        logger.logInfo("Logging resumed");
 
         MSG_MODULE_LOGCOLLECTOR_LOGREADY outgoing;
         connToLogCollector.sendMessage(outgoing.msg(), [this](const Message& msg)
@@ -138,7 +135,12 @@ public:
     {
         MSG_LOGCOLLECTOR_MODULE_LOGREQUEST incoming{ msg };
 
-        std::ifstream archivedLog(logFileName + ".aside");
+        std::ifstream archivedLog(logFileName + ".archive");
+        if(!logFile.is_open())
+        {
+            throw std::runtime_error("Could not open file!");
+        }
+
         std::stringstream ss;
         ss << archivedLog.rdbuf();
 
@@ -155,7 +157,7 @@ public:
     {
         MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK incoming{ msg };
 
-        std::filesystem::remove(logFileName + ".aside");
+        std::filesystem::remove(logFileName + ".archive");
 
         registerScheduledTask(30 * ONE_SECOND, [this]()
         {
