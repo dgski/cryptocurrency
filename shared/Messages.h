@@ -669,3 +669,129 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY : public MSG_STRUCT
         });
     }
 };
+
+struct MSG_MODULE_LOGCOLLECTOR_LOGREADY : public MSG_STRUCT
+{
+    constexpr static u32 id = 17;
+    
+    MSG_MODULE_LOGCOLLECTOR_LOGREADY(){}
+
+    MSG_MODULE_LOGCOLLECTOR_LOGREADY(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+        logMsg();
+    }
+
+    void parse(Parser& parser) override
+    {}
+
+    void compose(Message& msg) const override
+    {
+        msg.id = id;
+    }
+
+    void logMsg() const override
+    {
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_MODULE_LOGCOLLECTOR_LOGSREADY"},
+        });
+    }
+};
+
+struct MSG_LOGCOLLECTOR_MODULE_LOGREQUEST : public MSG_STRUCT
+{
+    constexpr static u32 id = 18;
+    
+    MSG_LOGCOLLECTOR_MODULE_LOGREQUEST(){}
+
+    MSG_LOGCOLLECTOR_MODULE_LOGREQUEST(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+        logMsg();
+    }
+
+    void parse(Parser& parser) override
+    {}
+
+    void compose(Message& msg) const override
+    {
+        msg.id = id;
+    }
+
+    void logMsg() const override
+    {
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_LOGCOLLECTOR_MODULE_LOGREQUEST"},
+        });
+    }
+};
+
+struct MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY : public MSG_STRUCT
+{
+    constexpr static u32 id = 19;
+
+    str log;
+    
+    MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY(){}
+
+    MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+        logMsg();
+    }
+
+    void parse(Parser& parser) override
+    {
+        parser.parse(log);
+    }
+
+    void compose(Message& msg) const override
+    {
+        msg.id = id;
+        msg.compose(log);
+    }
+
+    void logMsg() const override
+    {
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY"},
+            {"log.size()", (u64)log.size()}
+        });
+    }
+};
+
+struct MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK : public MSG_STRUCT
+{
+    constexpr static u32 id = 20;
+    
+    MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK(){}
+
+    MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK(const Message& msg)
+    {
+        Parser parser(msg);
+        parse(parser);
+        logMsg();
+    }
+
+    void parse(Parser& parser) override
+    {}
+
+    void compose(Message& msg) const override
+    {
+        msg.id = id;
+    }
+
+    void logMsg() const override
+    {
+        logger.logInfo({
+            {"event", "message"},
+            {"name", "MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK"},
+        });
+    }
+};

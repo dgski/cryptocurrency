@@ -3,8 +3,7 @@
 Miner::Miner(const char* iniFileName) : Module()
 {
     const std::map<str,str> params = getInitParameters(iniFileName);
-    
-    initLogger(params.at("logFileName").c_str());
+    init(params);
     
     logger.logInfo("Miner Module Starting");
 

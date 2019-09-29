@@ -3,8 +3,7 @@
 Transactioner::Transactioner(const char* iniFileName)
 {
     const std::map<str,str> params = getInitParameters(iniFileName);
-
-    initLogger(params.at("logFileName").c_str());
+    init(params);
 
     logger.logInfo("Transactioner Module Starting");
 

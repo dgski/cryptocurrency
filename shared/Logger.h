@@ -102,7 +102,7 @@ class Logger
     std::mutex logQueueMutex;
     std::vector<WaitingLogEntry> logQueue;
 
-    std::shared_ptr<std::thread> outputThread;
+    std::unique_ptr<std::thread> outputThread;
     std::atomic<bool> waitingToDestruct = false;
 
     void runOutput()
@@ -149,7 +149,8 @@ public:
 
     void run()
     {
-        outputThread = std::make_shared<std::thread>(&Logger::runOutput, this);
+        waitingToDestruct.store(false);
+        outputThread = std::make_unique<std::thread>(&Logger::runOutput, this);
     }
 
     void logInfo(std::vector<std::pair<const char*, Loggable>> contents)
@@ -206,6 +207,13 @@ public:
     void addOutputStream(std::ostream* os)
     {
         streams.outputStreams.push_back(os);
+    }
+
+    void endLogging()
+    {
+        waitingToDestruct.store(true);
+        outputThread->join();
+        streams.outputStreams.clear();
     }
 
     ~Logger()
