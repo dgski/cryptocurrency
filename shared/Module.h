@@ -33,11 +33,12 @@ class Module
 
     str logFileName;
     std::ofstream logFile;
-    ClientConnection connToLogCollector;
 
+    ClientConnection connToLogCollector;
 public:
-    Module()
-    {}
+    bool logCollectionEnabled = true;
+    
+    Module(){}
 
     void init(const std::map<str,str>& params)
     {
@@ -52,12 +53,15 @@ public:
         logger.addOutputStream(&logFile);
         logger.run();
 
-        connToLogCollector.init(strToIp(params.at("connToLogCollector")));
-        registerClientConnection(&connToLogCollector);
-        registerScheduledTask(30 * ONE_SECOND, [this]()
+        if(logCollectionEnabled)
         {
-            prepareLogArchive();
-        });
+            connToLogCollector.init(strToIp(params.at("connToLogCollector")));
+            registerClientConnection(&connToLogCollector);
+            registerScheduledTask(30 * ONE_SECOND, [this]()
+            {
+                prepareLogArchive();
+            });
+        }
     }
 
     virtual void processMessage(const Message& msg) = 0;
@@ -144,7 +148,7 @@ public:
         std::stringstream ss;
         ss << archivedLog.rdbuf();
 
-        MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY outgoing;
+        MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE outgoing;
         outgoing.log = std::move(ss.str());
 
         connToLogCollector.sendMessage(outgoing.msg(msg.reqId), [this](const Message& msg)

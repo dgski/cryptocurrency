@@ -730,15 +730,15 @@ struct MSG_LOGCOLLECTOR_MODULE_LOGREQUEST : public MSG_STRUCT
     }
 };
 
-struct MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY : public MSG_STRUCT
+struct MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE : public MSG_STRUCT
 {
     constexpr static u32 id = 19;
 
     str log;
     
-    MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY(){}
+    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE(){}
 
-    MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY(const Message& msg)
+    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE(const Message& msg)
     {
         Parser parser(msg);
         parse(parser);
@@ -760,7 +760,7 @@ struct MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY : public MSG_STRUCT
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY"},
+            {"name", "MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE"},
             {"log.size()", (u64)log.size()}
         });
     }
