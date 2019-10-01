@@ -10,5 +10,8 @@ g++-8 -std=c++17 transactioner/main.cpp transactioner/Transactioner.cpp shared/M
 # Networker
 g++-8 -std=c++17 networker/main.cpp networker/Networker.cpp shared/Module.cpp shared/Communication.cpp shared/Utils.cpp shared/Crypto.cpp -o bin/networker -lcrypto -lstdc++fs
 
+# LogCollector
+g++-8 -std=c++17 logcollector/main.cpp logcollector/LogCollector.cpp shared/Module.cpp shared/Communication.cpp shared/Utils.cpp shared/Crypto.cpp -o bin/logcollector -lcrypto -lstdc++fs
+
 # Fake Client
 g++-8 -std=c++17 fake_client/main.cpp shared/Communication.cpp shared/Utils.cpp shared/Crypto.cpp -o bin/fake_client -lcrypto -lstdc++fs

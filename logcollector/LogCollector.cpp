@@ -1,6 +1,6 @@
 #include "LogCollector.h"
 
-LogCollector::LogCollector(const char* iniFileName) : Module()
+LogCollector::LogCollector(const char* iniFileName)
 {
     logCollectionEnabled = false;
 
@@ -10,6 +10,7 @@ LogCollector::LogCollector(const char* iniFileName) : Module()
     logger.logInfo("LogCollector Module Starting");
 
     connFromModules.init(strToIp(params.at("connFromModules")));
+    registerServerConnection(&connFromModules);
 }
 
 void LogCollector::processMessage(const Message& msg)
@@ -32,24 +33,27 @@ void LogCollector::processLogReady(const Message& msg)
 {
     MSG_MODULE_LOGCOLLECTOR_LOGREADY incoming{ msg };
 
-    // TODO log info here
-
     MSG_LOGCOLLECTOR_MODULE_LOGREQUEST outgoing;
     connFromModules.sendMessage(
         msg.socket,
         outgoing.msg(msg.reqId),
-        [this](const Message& msg)
+        [this, name = incoming.name](const Message& msg)
         {
-            processLogArchive(msg);
+            processLogArchive(msg, name);
         }
     );
 }
 
-void LogCollector::processLogArchive(const Message& msg)
+void LogCollector::processLogArchive(const Message& msg, const str& name)
 {
     MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE incoming(msg);
-
-    // TODO save file locally here
+    
+    std::ofstream logFile(name + ".log");
+    if(!logFile.is_open())
+    {
+        throw std::runtime_error("Could not open log file");
+    }
+    logFile << incoming.log;
 
     MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK outgoing;
     connFromModules.sendMessage(msg.socket, outgoing.msg(msg.reqId));

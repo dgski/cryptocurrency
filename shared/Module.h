@@ -129,6 +129,8 @@ public:
         logger.run();
 
         MSG_MODULE_LOGCOLLECTOR_LOGREADY outgoing;
+        outgoing.name = "all";
+
         connToLogCollector.sendMessage(outgoing.msg(), [this](const Message& msg)
         {
             sendLogArchive(msg);

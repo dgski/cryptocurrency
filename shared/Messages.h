@@ -673,6 +673,8 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY : public MSG_STRUCT
 struct MSG_MODULE_LOGCOLLECTOR_LOGREADY : public MSG_STRUCT
 {
     constexpr static u32 id = 17;
+
+    str name;
     
     MSG_MODULE_LOGCOLLECTOR_LOGREADY(){}
 
@@ -684,11 +686,14 @@ struct MSG_MODULE_LOGCOLLECTOR_LOGREADY : public MSG_STRUCT
     }
 
     void parse(Parser& parser) override
-    {}
+    {
+        parser.parse(name);
+    }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
+        msg.compose(name);
     }
 
     void logMsg() const override
@@ -696,6 +701,7 @@ struct MSG_MODULE_LOGCOLLECTOR_LOGREADY : public MSG_STRUCT
         logger.logInfo({
             {"event", "message"},
             {"name", "MSG_MODULE_LOGCOLLECTOR_LOGSREADY"},
+            {"name", name}
         });
     }
 };
