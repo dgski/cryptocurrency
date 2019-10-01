@@ -35,10 +35,14 @@ class Module
     std::ofstream logFile;
 
     ClientConnection connToLogCollector;
+protected:
+    const str moduleName;
 public:
     bool logCollectionEnabled = true;
     
-    Module(){}
+    Module(str _moduleName)
+    : moduleName(std::move(_moduleName))
+    {}
 
     void init(const std::map<str,str>& params)
     {
@@ -57,7 +61,7 @@ public:
         {
             connToLogCollector.init(strToIp(params.at("connToLogCollector")));
             registerClientConnection(&connToLogCollector);
-            registerScheduledTask(30 * ONE_SECOND, [this]()
+            registerScheduledTask(5 * 60 * ONE_SECOND, [this]()
             {
                 prepareLogArchive();
             });
@@ -129,7 +133,7 @@ public:
         logger.run();
 
         MSG_MODULE_LOGCOLLECTOR_LOGREADY outgoing;
-        outgoing.name = "all";
+        outgoing.name = moduleName;
 
         connToLogCollector.sendMessage(outgoing.msg(), [this](const Message& msg)
         {

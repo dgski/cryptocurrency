@@ -1,6 +1,6 @@
 #include "Manager.h"
 
-Manager::Manager(const char* iniFileName)
+Manager::Manager(const char* iniFileName) : Module("manager")
 {
     const std::map<str,str> params = getInitParameters(iniFileName);
     init(params);

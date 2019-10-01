@@ -205,7 +205,7 @@ class Connection
 {
 protected:
     u32 nextReqId = 1;
-    std::unordered_map<u32,Callback> callbacks;
+    std::unordered_map<std::pair<i32, u32>,Callback, pairHash> callbacks;
 
     std::unique_ptr<std::mutex> outgoingMutex;
     std::vector<OutboundMessage> outgoingQueue;
@@ -341,7 +341,7 @@ public:
                 Message& msg = potentialMsg.value();
                 msg.logMsg("incoming");
 
-                auto it = callbacks.find(msg.reqId);
+                auto it = callbacks.find(std::pair{socket, msg.reqId});
                 if(it != callbacks.end())
                 {
                     it->second(msg);
@@ -404,7 +404,7 @@ public:
             }
             if(msg.callback.has_value())
             {
-                callbacks[msg.message.reqId] = msg.callback.value();
+                callbacks[std::pair{*it, msg.message.reqId}] = msg.callback.value();
             }
 
             msg.message.logMsg("outgoing");
@@ -429,7 +429,7 @@ public:
         }
         if(msg.callback.has_value())
         {
-            callbacks[msg.message.reqId] = msg.callback.value();
+            callbacks[std::pair{msg.socket.value(), msg.message.reqId}] = msg.callback.value();
         }
 
         sendFinalMessage(msg.socket.value(), msg.message);
@@ -510,7 +510,7 @@ public:
             Message& msg = potentialMsg.value();
             msg.logMsg("incoming");
             
-            auto it = callbacks.find(msg.reqId);
+            auto it = callbacks.find(std::pair{socketFileDescriptor, msg.reqId});
             if(it != callbacks.end())
             {
                 it->second(msg);
@@ -554,7 +554,7 @@ public:
                     }
                     if(msg.callback.has_value())
                     {
-                        callbacks[msg.message.reqId] = msg.callback.value();
+                        callbacks[std::pair{socketFileDescriptor ,msg.message.reqId}] = msg.callback.value();
                     }
                     sendFinalMessage(socketFileDescriptor, msg.message);
                 }

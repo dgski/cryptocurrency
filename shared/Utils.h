@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "Types.h"
+#include "../simple-time/SimpleTime.h"
 
 template<typename T>
 class AtomicChannel
@@ -62,3 +63,13 @@ std::vector<str> splitStr(const str& input);
 u64 getCurrentUnixTime();
 
 constexpr u64 ONE_SECOND = 1000000;
+
+struct pairHash
+{
+    template<typename A, typename B>
+    size_t operator()(const std::pair<A,B> p) const
+    {
+        return 3203302344 ^ std::hash<A>{}(p.first) ^ std::hash<B>{}(p.second) << 22;
+    }
+};
+

@@ -1,0 +1,3 @@
+[submodule "simple-time"]
+	path = simple-time
+	url = https://github.com/dgski/simple-time
