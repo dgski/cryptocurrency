@@ -169,7 +169,7 @@ public:
 
         std::filesystem::remove(logFileName + ".archive");
 
-        registerScheduledTask(30 * ONE_SECOND, [this]()
+        registerScheduledTask(5 * 60 * ONE_SECOND, [this]()
         {
             prepareLogArchive();
         });
