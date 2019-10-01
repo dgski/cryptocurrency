@@ -109,6 +109,7 @@ public:
     {
         logger.logInfo({
             {"event", direction},
+            {"socket", socket},
             {"id", id},
             {"reqId", reqId},
             {"size", size}
