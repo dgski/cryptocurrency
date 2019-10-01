@@ -4,33 +4,43 @@ void Module::run()
 {
     while(true)
     {
-        for(ServerConnection* s : serverConnections)
+        try
         {
-            s->acceptNewConnections();
-            std::optional<Message> msg = s->getMessage();
-            if(msg.has_value())
+            for(ServerConnection* s : serverConnections)
             {
-                processMessage(msg.value());
+                s->acceptNewConnections();
+                std::optional<Message> msg = s->getMessage();
+                if(msg.has_value())
+                {
+                    processMessage(msg.value());
+                }
+            }
+
+            for(ClientConnection* c : clientConnections)
+            {
+                std::optional<Message> msg = c->getMessage();
+                if(msg.has_value())
+                {
+                    processMessage(msg.value());
+                }
+            }
+
+            u64 now = getCurrentUnixTime();
+            for(auto it = scheduledTasks.begin(); it != scheduledTasks.end(); ++it)
+            {
+                if(it->when <= now)
+                {
+                    std::invoke(it->task);
+                    scheduledTasks.erase(it);
+                }
             }
         }
-
-        for(ClientConnection* c : clientConnections)
+        catch(const std::exception& e)
         {
-            std::optional<Message> msg = c->getMessage();
-            if(msg.has_value())
-            {
-                processMessage(msg.value());
-            }
-        }
-
-        u64 now = getCurrentUnixTime();
-        for(auto it = scheduledTasks.begin(); it != scheduledTasks.end(); ++it)
-        {
-            if(it->when <= now)
-            {
-                std::invoke(it->task);
-                scheduledTasks.erase(it);
-            }
+            logger.logError({
+                {"event", "exception"},
+                {"description", e.what()}
+            });
         }
     }
 }

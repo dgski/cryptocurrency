@@ -26,6 +26,20 @@ struct MSG_STRUCT
         return msg;
     }
 
+    template<u32 id>
+    void checkId(const Message& msg)
+    {
+        if(msg.id != id)
+        {
+            logger.logError({
+                {"event", "Incorrect Parse Prevented"},
+                {"parsingMsgId", id},
+                {"givenId", id}
+            });
+            throw std::runtime_error("Wrong message id for parsing");
+        }
+    }
+
     virtual void logMsg() const = 0;
 };
 
@@ -38,6 +52,7 @@ struct MSG_MANAGER_MINER_NEWBASEHASH : public MSG_STRUCT
 
     MSG_MANAGER_MINER_NEWBASEHASH(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -73,6 +88,7 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
 
     MSG_MINER_MANAGER_PROOFOFWORK(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
     }
@@ -107,6 +123,7 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -142,6 +159,7 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -177,6 +195,7 @@ struct MSG_CLIENT_TRANSACTIONER_NEWTRANS : public MSG_STRUCT
 
     MSG_CLIENT_TRANSACTIONER_NEWTRANS(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -212,6 +231,7 @@ struct MSG_MINER_MANAGER_HASHREQUEST : public MSG_STRUCT
 
     MSG_MINER_MANAGER_HASHREQUEST(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -244,6 +264,7 @@ struct MSG_MANAGER_NETWORKER_NEWBLOCK : public MSG_STRUCT
 
     MSG_MANAGER_NETWORKER_NEWBLOCK(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -281,6 +302,7 @@ struct MSG_NETWORKER_NETWORKER_NEWBLOCK : public MSG_STRUCT
 
     MSG_NETWORKER_NETWORKER_NEWBLOCK(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -318,6 +340,7 @@ struct MSG_NETWORKER_NETWORKER_REGISTERME : public MSG_STRUCT
 
     MSG_NETWORKER_NETWORKER_REGISTERME(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -355,6 +378,7 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
 
     MSG_NETWORKER_MANAGER_NEWBLOCK(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -394,6 +418,7 @@ struct MSG_MANAGER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     MSG_MANAGER_NETWORKER_CHAINREQUEST(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -430,6 +455,7 @@ struct MSG_NETWORKER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     MSG_NETWORKER_NETWORKER_CHAINREQUEST(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -465,6 +491,7 @@ struct MSG_NETWORKER_MANAGER_CHAINREQUEST : public MSG_STRUCT
 
     MSG_NETWORKER_MANAGER_CHAINREQUEST(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -500,6 +527,7 @@ struct MSG_MANAGER_NETWORKER_CHAIN : public MSG_STRUCT
 
     MSG_MANAGER_NETWORKER_CHAIN(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -536,6 +564,7 @@ struct MSG_NETWORKER_MANAGER_CHAIN : public MSG_STRUCT
 
     MSG_NETWORKER_MANAGER_CHAIN(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -572,6 +601,7 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
 
     MSG_NETWORKER_NETWORKER_CHAIN(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -608,6 +638,7 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET : public MSG_STRUCT
 
     MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -644,6 +675,7 @@ struct MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY : public MSG_STRUCT
 
     MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -680,6 +712,7 @@ struct MSG_MODULE_LOGCOLLECTOR_LOGREADY : public MSG_STRUCT
 
     MSG_MODULE_LOGCOLLECTOR_LOGREADY(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -714,6 +747,7 @@ struct MSG_LOGCOLLECTOR_MODULE_LOGREQUEST : public MSG_STRUCT
 
     MSG_LOGCOLLECTOR_MODULE_LOGREQUEST(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -746,6 +780,7 @@ struct MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE : public MSG_STRUCT
 
     MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
@@ -780,6 +815,7 @@ struct MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK : public MSG_STRUCT
 
     MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK(const Message& msg)
     {
+        checkId<id>(msg);
         Parser parser(msg);
         parse(parser);
         logMsg();
