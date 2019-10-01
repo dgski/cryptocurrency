@@ -1,6 +1,6 @@
 #include "Miner.h"
 
-Miner::Miner(const char* iniFileName) : Module()
+Miner::Miner(const char* iniFileName)  : Module("miner")
 {
     const std::map<str,str> params = getInitParameters(iniFileName);
     init(params);

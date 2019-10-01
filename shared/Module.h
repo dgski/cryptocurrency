@@ -33,10 +33,15 @@ class Module
 
     str logFileName;
     std::ofstream logFile;
-    ClientConnection connToLogCollector;
 
+    ClientConnection connToLogCollector;
+protected:
+    const str moduleName;
 public:
-    Module()
+    bool logCollectionEnabled = true;
+    
+    Module(str _moduleName)
+    : moduleName(std::move(_moduleName))
     {}
 
     void init(const std::map<str,str>& params)
@@ -52,12 +57,15 @@ public:
         logger.addOutputStream(&logFile);
         logger.run();
 
-        connToLogCollector.init(strToIp(params.at("connToLogCollector")));
-        registerClientConnection(&connToLogCollector);
-        registerScheduledTask(30 * ONE_SECOND, [this]()
+        if(logCollectionEnabled)
         {
-            prepareLogArchive();
-        });
+            connToLogCollector.init(strToIp(params.at("connToLogCollector")));
+            registerClientConnection(&connToLogCollector);
+            registerScheduledTask(5 * 60 * ONE_SECOND, [this]()
+            {
+                prepareLogArchive();
+            });
+        }
     }
 
     virtual void processMessage(const Message& msg) = 0;
@@ -125,6 +133,8 @@ public:
         logger.run();
 
         MSG_MODULE_LOGCOLLECTOR_LOGREADY outgoing;
+        outgoing.name = moduleName;
+
         connToLogCollector.sendMessage(outgoing.msg(), [this](const Message& msg)
         {
             sendLogArchive(msg);
@@ -144,7 +154,7 @@ public:
         std::stringstream ss;
         ss << archivedLog.rdbuf();
 
-        MSG_LOGCOLLECTOR_MODULE_LOGREQUEST_REPLY outgoing;
+        MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE outgoing;
         outgoing.log = std::move(ss.str());
 
         connToLogCollector.sendMessage(outgoing.msg(msg.reqId), [this](const Message& msg)

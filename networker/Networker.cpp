@@ -1,6 +1,6 @@
 #include "Networker.h"
 
-Networker::Networker(const char* iniFileName)
+Networker::Networker(const char* iniFileName) : Module("networker")
 {
     const std::map<str,str> params = getInitParameters(iniFileName);
     init(params);

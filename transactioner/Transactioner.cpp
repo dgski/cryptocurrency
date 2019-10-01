@@ -1,6 +1,6 @@
 #include "Transactioner.h"
 
-Transactioner::Transactioner(const char* iniFileName)
+Transactioner::Transactioner(const char* iniFileName) : Module("transactioner")
 {
     const std::map<str,str> params = getInitParameters(iniFileName);
     init(params);
