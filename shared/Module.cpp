@@ -4,25 +4,42 @@ void Module::run()
 {
     while(true)
     {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::vector<EnquedMessage> incomingQueue;
         try
         {
             for(ServerConnection* s : serverConnections)
             {
-                s->acceptNewConnections();
-                std::optional<Message> msg = s->getMessage();
-                if(msg.has_value())
+                s->getIncomingQueue(incomingQueue);
+                for(auto& msg : incomingQueue)
                 {
-                    processMessage(msg.value());
+                    if(msg.callback.has_value())
+                    {
+                        msg.callback.value()(msg.message);
+                    }
+                    else
+                    {
+                        processMessage(msg.message);
+                    }
                 }
+                incomingQueue.clear();
             }
 
             for(ClientConnection* c : clientConnections)
             {
-                std::optional<Message> msg = c->getMessage();
-                if(msg.has_value())
+                c->getIncomingQueue(incomingQueue);
+                for(auto& msg : incomingQueue)
                 {
-                    processMessage(msg.value());
+                    if(msg.callback.has_value())
+                    {
+                        msg.callback.value()(msg.message);
+                    }
+                    else
+                    {
+                        processMessage(msg.message);
+                    }
                 }
+                incomingQueue.clear();
             }
 
             u64 now = getCurrentUnixTime();

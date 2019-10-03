@@ -19,6 +19,8 @@
 #include "../shared/Blockchain.h"
 #include "../shared/Logger.h"
 
+constexpr u32 LOG_FREQUENCY = 5* 30 * ONE_SECOND;
+
 struct ScheduledTask
 {
     u64 when;
@@ -61,7 +63,7 @@ public:
         {
             connToLogCollector.init(strToIp(params.at("connToLogCollector")));
             registerClientConnection(&connToLogCollector);
-            registerScheduledTask(5 * 60 * ONE_SECOND, [this]()
+            registerScheduledTask(LOG_FREQUENCY, [this]()
             {
                 prepareLogArchive();
             });
@@ -169,7 +171,7 @@ public:
 
         std::filesystem::remove(logFileName + ".archive");
 
-        registerScheduledTask(5 * 60 * ONE_SECOND, [this]()
+        registerScheduledTask(LOG_FREQUENCY, [this]()
         {
             prepareLogArchive();
         });

@@ -195,7 +195,7 @@ ConnectionStatus sendFinalMessage(int socket, const Message& msg);
 
 using Callback = std::function<void(Message&)>;
 
-struct OutboundMessage
+struct EnquedMessage
 {
     std::optional<int> socket;
     Message message;
@@ -209,28 +209,47 @@ protected:
     std::unordered_map<std::pair<i32, u32>,Callback, pairHash> callbacks;
 
     std::unique_ptr<std::mutex> outgoingMutex;
-    std::vector<OutboundMessage> outgoingQueue;
+    std::vector<EnquedMessage> outgoingQueue;
+
+    std::unique_ptr<std::mutex> incomingMutex;
+    std::vector<EnquedMessage> incomingQueue;
 
     u32 getNextReqId()
     {
         u32 next = nextReqId;
         nextReqId++;
-
         if(nextReqId == 0)
             nextReqId++;
-
         return next;
     }
-
 public:
     virtual void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) = 0;
     virtual void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) = 0;
     virtual std::optional<Message> getMessage() = 0;
+
+    std::optional<Callback> getCallback(i32 socket, u32 reqId)
+    {
+        auto it = callbacks.find(std::pair{socket, reqId});
+        if(it != callbacks.end())
+        {
+            return std::move(it->second);
+        }
+
+        return std::nullopt;
+    }
+
+    void getIncomingQueue(std::vector<EnquedMessage>& _incomingQueue)
+    {
+        std::lock_guard<std::mutex> lock(*incomingMutex);
+        std::swap(_incomingQueue, incomingQueue);
+    }
 };
 
 class ServerConnection : public Connection
 {
     int serverFileDescriptor;
+
+    std::unique_ptr<std::mutex> socketsMutex;
     std::list<int> sockets;
     sockaddr_in address;
 
@@ -244,6 +263,8 @@ public:
         });
 
         outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
+        incomingMutex = std::unique_ptr<std::mutex>(new std::mutex());
+        socketsMutex = std::unique_ptr<std::mutex>(new std::mutex());
 
         if ((serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
         { 
@@ -268,6 +289,7 @@ public:
         logger.logInfo("ServerConnection established");
 
         run();
+        runIncoming();
     }
 
     void acceptNewConnections(bool wait = false)
@@ -301,7 +323,11 @@ public:
             tv.tv_usec = 100;
             setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
-            sockets.push_back(new_socket);
+            
+            {
+                std::lock_guard<std::mutex> lock(*socketsMutex);
+                sockets.push_back(new_socket);
+            }
 
             logger.logInfo({
                 {"event", "ServerConnection: accepted new connection socket"},
@@ -366,7 +392,7 @@ public:
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                std::vector<OutboundMessage> currentQueue;
+                std::vector<EnquedMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
                     if(outgoingQueue.empty())
@@ -393,7 +419,36 @@ public:
         outgoing.detach();
     }
 
-    void sendToAll(OutboundMessage& msg)
+    void runIncoming()
+    {
+        std::thread incoming([this]()
+        {
+            while(true)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                acceptNewConnections();
+                std::lock_guard<std::mutex> lock(*socketsMutex);
+                for(int socket : sockets)
+                {
+                    std::optional<Message> potentialMsg = getFinalMessage(socket);
+                    if(potentialMsg.has_value())
+                    {
+                        Message& msg = potentialMsg.value();
+                        msg.logMsg("incoming");
+
+                        std::lock_guard<std::mutex> lock(*incomingMutex);
+                        incomingQueue.push_back({
+                            socket,
+                            std::move(msg),
+                            std::move(getCallback(socket, msg.reqId))});
+                    }
+                }
+            }
+        });
+        incoming.detach();
+    }
+
+    void sendToAll(EnquedMessage& msg)
     {
         const bool generateRequestId = msg.message.reqId == 0;
 
@@ -417,12 +472,14 @@ public:
                     {"event", "Connection closed; could not send message. Deleting."},
                     {"socket", *it}
                 });
+                
+                std::lock_guard<std::mutex> lock(*socketsMutex);
                 sockets.erase(it);
             }
         }
     }
 
-    void sendToSingle(OutboundMessage& msg)
+    void sendToSingle(EnquedMessage& msg)
     {
         if(msg.message.reqId == 0)
         {
@@ -451,6 +508,7 @@ public:
         });
 
         outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
+        incomingMutex = std::unique_ptr<std::mutex>(new std::mutex());
 
         sockaddr_in serv_addr;
 
@@ -485,6 +543,7 @@ public:
         logger.logInfo("ClientConnection established");
 
         run();
+        runIncoming();
     }
 
     int getSocket() const
@@ -536,7 +595,7 @@ public:
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                std::vector<OutboundMessage> currentQueue;
+                std::vector<EnquedMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
                     if(outgoingQueue.empty())
@@ -563,5 +622,29 @@ public:
             }
         });
         outgoing.detach();
+    }
+
+    void runIncoming()
+    {
+        std::thread incoming([this]()
+        {
+            while(true)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::optional<Message> potentialMsg = getFinalMessage(socketFileDescriptor);
+                if(potentialMsg.has_value())
+                {
+                    Message& msg = potentialMsg.value();
+                    msg.logMsg("incoming");
+
+                    std::lock_guard<std::mutex> lock(*incomingMutex);
+                    incomingQueue.push_back({
+                        socketFileDescriptor,
+                        std::move(msg),
+                        std::move(getCallback(socketFileDescriptor, msg.reqId))});
+                }
+            }
+        });
+        incoming.detach();
     }
 };
