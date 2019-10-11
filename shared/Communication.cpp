@@ -58,5 +58,10 @@ ConnectionStatus sendFinalMessage(int socket, const Message& msg)
     }
 
     const int bytes = send(socket, buffer.data(), buffer.size(), 0);
+    if(bytes == -1)
+    {
+        return ConnectionStatus::MessageNotSent;
+    }
+
     return ConnectionStatus::Connected;
 }

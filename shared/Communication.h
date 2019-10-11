@@ -23,7 +23,8 @@
 enum class ConnectionStatus
 {
     Connected,
-    Disconnected
+    Disconnected,
+    MessageNotSent
 };
 
 class Message
@@ -255,6 +256,8 @@ class ServerConnection : public Connection
     std::list<int> sockets;
     sockaddr_in address;
 
+    std::list<EnquedMessage> savedMessages;
+
 public:
     void init(const IpInfo& ip)
     {
@@ -394,6 +397,19 @@ public:
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+                if(!savedMessages.empty())
+                {
+                    for(auto it = std::begin(savedMessages); it != std::end(savedMessages); ++it)
+                    {
+                        auto status = sendToSingle(*it);
+                        if(status != ConnectionStatus::MessageNotSent)
+                        {
+                            savedMessages.erase(it);
+                        }
+                    }
+                }
+
                 std::vector<EnquedMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
@@ -409,7 +425,10 @@ public:
                     msg.message.logMsg("outgoing");
                     if(msg.socket.has_value())
                     {
-                        sendToSingle(msg);
+                        if(sendToSingle(msg) == ConnectionStatus::MessageNotSent)
+                        {
+                            savedMessages.push_back({msg.socket.value(), std::move(msg.message), std::nullopt});
+                        }
                     }
                     else
                     {
@@ -467,7 +486,7 @@ public:
 
             msg.message.logMsg("outgoing");
 
-            ConnectionStatus status = sendFinalMessage(*it, msg.message);
+            auto status = sendFinalMessage(*it, msg.message);
             if(status == ConnectionStatus::Disconnected)
             {
                 logger.logWarning({
@@ -478,10 +497,14 @@ public:
                 std::lock_guard<std::mutex> lock(*socketsMutex);
                 sockets.erase(it);
             }
+            else if(status == ConnectionStatus::MessageNotSent)
+            {
+                savedMessages.push_back({*it, msg.message, std::nullopt});
+            }
         }
     }
 
-    void sendToSingle(EnquedMessage& msg)
+    ConnectionStatus sendToSingle(EnquedMessage& msg)
     {
         if(msg.message.reqId == 0)
         {
@@ -491,8 +514,7 @@ public:
         {
             callbacks[std::pair{msg.socket.value(), msg.message.reqId}] = msg.callback.value();
         }
-
-        sendFinalMessage(msg.socket.value(), msg.message);
+        return sendFinalMessage(msg.socket.value(), msg.message);
     }
 };
 
@@ -594,9 +616,20 @@ public:
     {
         std::thread outgoing([this]()
         {
+            std::list<Message> savedMessages;
             while(true)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+                for(auto it = std::begin(savedMessages); it != std::end(savedMessages); ++it)
+                {
+                    auto status = sendFinalMessage(socketFileDescriptor, *it);
+                    if(status != ConnectionStatus::MessageNotSent)
+                    {
+                        savedMessages.erase(it);
+                    }
+                }
+
                 std::vector<EnquedMessage> currentQueue;
                 {
                     std::lock_guard<std::mutex> lock(*outgoingMutex);
@@ -616,9 +649,14 @@ public:
                     }
                     if(msg.callback.has_value())
                     {
-                        callbacks[std::pair{socketFileDescriptor ,msg.message.reqId}] = msg.callback.value();
+                        callbacks[std::pair{socketFileDescriptor, msg.message.reqId}] = msg.callback.value();
                     }
-                    sendFinalMessage(socketFileDescriptor, msg.message);
+
+                    auto status = sendFinalMessage(socketFileDescriptor, msg.message);
+                    if(status == ConnectionStatus::MessageNotSent)
+                    {
+                        savedMessages.push_back(std::move(msg.message));
+                    }
                 }
                 
             }

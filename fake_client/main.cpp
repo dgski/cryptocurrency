@@ -4,6 +4,10 @@
 
 int main()
 {
+    logger.addOutputStream(&std::cout);
+    logger.run();
+    logger.logInfo("Starting Fake Client!");
+
     auto keys = RSAKeyPair::create("test_keys/private.pem", "test_keys/public.pem");
     if(!keys.has_value())
     {
