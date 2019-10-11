@@ -1,3 +1,4 @@
 # Todo
 - More efficient chain absorption
-- Separate network thread
+- Batched log sending
+- Keep unsent messages
