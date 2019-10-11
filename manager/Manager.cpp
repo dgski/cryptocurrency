@@ -21,7 +21,7 @@ Manager::Manager(const char* iniFileName) : Module("manager")
         throw std::runtime_error("Wallet Keypair could not be read.");
     }
 
-    registerScheduledTask(ONE_SECOND, [this]()
+    registerScheduledTask(ASK_FOR_TRANS_FREQ, [this]()
     {
         askTransactionerForNewTransactions();
     });
@@ -81,7 +81,7 @@ void Manager::askTransactionerForNewTransactions()
         processTransactionRequestReply(reply);
     });
 
-    registerScheduledTask(ONE_SECOND, [this]()
+    registerScheduledTask(ASK_FOR_TRANS_FREQ, [this]()
     {
         askTransactionerForNewTransactions();
     });

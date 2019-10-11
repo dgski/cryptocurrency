@@ -232,7 +232,9 @@ public:
         auto it = callbacks.find(std::pair{socket, reqId});
         if(it != callbacks.end())
         {
-            return std::move(it->second);
+            auto res = std::move(it->second);
+            callbacks.erase(it);
+            return res;
         }
 
         return std::nullopt;
@@ -299,7 +301,7 @@ public:
 
         struct timeval timeout;
         timeout.tv_sec = 0;
-        timeout.tv_usec = 100;
+        timeout.tv_usec = 1000;
 
         fd_set read_fd_set;
         FD_ZERO(&read_fd_set); 
@@ -320,7 +322,7 @@ public:
         {
             struct timeval tv;
             tv.tv_sec = 0;
-            tv.tv_usec = 100;
+            tv.tv_usec = 1000;
             setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
             
@@ -536,7 +538,7 @@ public:
 
         struct timeval tv;
         tv.tv_sec = 0;
-        tv.tv_usec = 100;
+        tv.tv_usec = 1000;
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
         setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 

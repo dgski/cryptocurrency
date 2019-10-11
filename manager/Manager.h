@@ -2,6 +2,8 @@
 
 #include "../shared/Module.h"
 
+constexpr u32 ASK_FOR_TRANS_FREQ = 60 * ONE_SECOND;
+
 class Manager : public Module
 {
     std::vector<Block> chain;
