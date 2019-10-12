@@ -770,15 +770,15 @@ struct MSG_LOGCOLLECTOR_MODULE_LOGREQUEST : public MSG_STRUCT
     }
 };
 
-struct MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE : public MSG_STRUCT
+struct MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE_CHUNK : public MSG_STRUCT
 {
     constexpr static u32 id = 19;
 
     str log;
     
-    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE(){}
+    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE_CHUNK(){}
 
-    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE(const Message& msg)
+    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE_CHUNK(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -801,7 +801,7 @@ struct MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE : public MSG_STRUCT
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE"},
+            {"name", "MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE_CHUNK"},
             {"log.size()", (u64)log.size()}
         });
     }

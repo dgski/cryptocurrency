@@ -10,6 +10,7 @@
 #include <variant>
 #include <fstream>
 #include <filesystem>
+#include <array>
 
 #include "../shared/Types.h"
 #include "../shared/Utils.h"
@@ -19,7 +20,7 @@
 #include "../shared/Blockchain.h"
 #include "../shared/Logger.h"
 
-constexpr u32 LOG_FREQUENCY = 5* 30 * ONE_SECOND;
+constexpr u32 LOG_FREQUENCY = 30 * ONE_SECOND;
 
 struct ScheduledTask
 {
@@ -147,22 +148,50 @@ public:
     {
         MSG_LOGCOLLECTOR_MODULE_LOGREQUEST incoming{ msg };
 
-        std::ifstream archivedLog(logFileName + ".archive");
-        if(!logFile.is_open())
+        auto archivedLog = std::make_shared<std::ifstream>(logFileName + ".archive");
+        if(!archivedLog->is_open())
         {
             throw std::runtime_error("Could not open file!");
         }
 
-        std::stringstream ss;
-        ss << archivedLog.rdbuf();
+        sendNextChunk(msg.reqId, std::move(archivedLog));
+    }
 
-        MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE outgoing;
-        outgoing.log = std::move(ss.str());
+    void sendNextChunk(u32 reqId, std::shared_ptr<std::ifstream> archivedLog)
+    {        
+        MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE_CHUNK outgoing;
 
-        connToLogCollector.sendMessage(outgoing.msg(msg.reqId), [this](const Message& msg)
+        if(archivedLog->peek() == EOF) // Send empty
         {
-            deleteLogArchive(msg);
-        });
+            connToLogCollector.sendMessage(
+                outgoing.msg(reqId),[this](const Message& msg)
+                {
+                    deleteLogArchive(msg);
+                });
+
+            return;
+        }
+
+        std::array<char, 1024> buffer;
+        u64 bytesRead = archivedLog->readsome(buffer.data(), 1023);
+        buffer[bytesRead] = '\0';
+
+        outgoing.log.reserve(bytesRead);
+        for(char c : buffer)
+        {
+            if(c == '\0')
+            {
+                break;
+            }
+            outgoing.log.push_back(c);
+        }
+
+        connToLogCollector.sendMessage(
+            outgoing.msg(reqId),[this, archivedLog = std::move(archivedLog)](const Message& msg)
+            {
+                MSG_LOGCOLLECTOR_MODULE_LOGREQUEST incoming{ msg };
+                sendNextChunk(msg.reqId, archivedLog);
+            });
     }
 
     void deleteLogArchive(const Message& msg)

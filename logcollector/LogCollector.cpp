@@ -77,7 +77,15 @@ void LogCollector::processLogReady(const Message& msg)
 
 void LogCollector::processLogArchive(const Message& msg, const str& name)
 {
-    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE incoming(msg);
+    MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE_CHUNK incoming(msg);
+
+    if(incoming.log.empty())
+    {
+        MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK outgoing;
+        connFromModules.sendMessage(msg.socket, outgoing.msg(msg.reqId));
+
+        return;
+    }
     
     std::ofstream logFile(currentPath + name + ".log", std::ios_base::openmode::_S_app);
     if(!logFile.is_open())
@@ -86,6 +94,13 @@ void LogCollector::processLogArchive(const Message& msg, const str& name)
     }
     logFile << incoming.log;
 
-    MSG_LOGCOLLECTOR_MODULE_DELETELOCALARCHIVEOK outgoing;
-    connFromModules.sendMessage(msg.socket, outgoing.msg(msg.reqId));
+    MSG_LOGCOLLECTOR_MODULE_LOGREQUEST outgoing;
+    connFromModules.sendMessage(
+        msg.socket,
+        outgoing.msg(msg.reqId),
+        [this, name](const Message& msg)
+        {
+            processLogArchive(msg, name);
+        }
+    );
 }
