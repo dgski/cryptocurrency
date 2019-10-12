@@ -48,7 +48,7 @@ void Manager::processMessage(const Message& msg)
             processPotentialWinningBlock(msg);
             return;
         }
-        case MSG_NETWORKER_MANAGER_CHAINREQUEST::id:
+        case MSG_NETWORKER_MANAGER_BLOCKREQUEST::id:
         {
             processNetworkerChainRequest(msg);
             return;
@@ -212,122 +212,99 @@ void Manager::processPotentialWinningBlock(const Message& msg)
 {
     MSG_NETWORKER_MANAGER_NEWBLOCK incoming{ msg };
 
-    if(currentBlock.id > incoming.block.id)
+    if(currentBlock.id >= incoming.block.id)
     {
         logger.logInfo({
-            {"event", "Block id is lower than ours; ignore"},
+            {"event", "Block id is lower or equal to ours; ignore"},
             {"currentBlock.id", currentBlock.id},
             {"incoming.block.id", incoming.block.id}
         });
         return;
     }
 
-    MSG_MANAGER_NETWORKER_CHAINREQUEST outgoing;
-    outgoing.maxId = incoming.block.id;
-    outgoing.connId = incoming.connId;
-
-    connFromNetworker.sendMessage(outgoing.msg(), [this](const Message& msg)
-    {
-        processPotentialWinningBlock_ChainReply(msg);
-    });
+    std::list<Block> potentialChain{ std::move(incoming.block) };
+    tryAbsorbChain(incoming.connSocket, std::move(potentialChain));
 }
 
-void Manager::processPotentialWinningBlock_ChainReply(const Message& msg)
+void Manager::tryAbsorbChain(i32 orginSocket, std::list<Block> potentialChain)
 {
-    MSG_NETWORKER_NETWORKER_CHAIN incoming{ msg };
-
-    auto transactionHashes = getValidTransHashes(incoming.chain);
-    if(!transactionHashes.has_value())
+    if(!potentialChain.front().isValid())
     {
-        logger.logWarning("Chain is not valid. Aborting.");
+        logger.logInfo({
+            {"event", "Block is not valid; not requesting further blocks"}
+        });
         return;
     }
-    
-    logger.logWarning("Chain is valid. Using it from now on.");
-    chain.clear();
-    for(Block& block : incoming.chain)
+
+    if(potentialChain.front().id == 0 ||
+        potentialChain.front().hashOfLastBlock == 1 /* is In Current Block chain*/)
     {
-        pushBlock(block);
+        finalizeAbsorbChain(std::move(potentialChain));
+        return;
     }
 
-    processPotentialWinningBlock_Finalize(transactionHashes.value());
+    MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
+    outgoing.blockId = potentialChain.front().id - 1;
+    outgoing.connSocket = orginSocket;
+    
+    connFromNetworker.sendMessage(
+        outgoing.msg(),
+        [this, chain = std::move(potentialChain)](const Message& msg)
+        {
+            MSG_NETWORKER_MANAGER_BLOCK incoming( msg );
+
+            std::list<Block> potentialChain = std::move(chain);
+            potentialChain.push_front(incoming.block);
+            
+            tryAbsorbChain(incoming.connSocket, std::move(potentialChain));
+        });
 }
 
-void Manager::processPotentialWinningBlock_Finalize(const std::set<u64>& transactionHashes)
-{   
-    const Block& winningBlock = chain.back();
+void Manager::finalizeAbsorbChain(std::list<Block> potentialChainFragment)
+{
+    // Check that in the meantime we did not accumulate a bigger chain
+    // TODO
 
-    currentBlock.id = winningBlock.id + 1;
-    currentBlock.hashOfLastBlock = winningBlock.calculateFullHash();
+    logger.logInfo("Foreign chain valid. Absorbing.");
+
+    // Splice the current chain into that range
+    // TODO
+
+    // Remove effects of removed blocks, Add effects of added blocks
+    // TODO
+
+    // Start working on new Block
+    currentBlock.id = chain.back().id + 1;
+    currentBlock.hashOfLastBlock = chain.back().calculateFullHash();
     currentBlockWalletDeltas.clear();
 
     std::remove_if(
         std::begin(currentBlock.transactions),
         std::end(currentBlock.transactions),
-        [&transactionHashes, this](Transaction& t)
+        [this](Transaction& t)
         {
-            return transactionHashes.count(Transaction::hashValue(t)) == 1;
-        }
-    );
+            return true; // TODO: Remove if transactions are already in Chain
+        });
 
     mintCurrency();
     sendBaseHashToMiners();
+    return;
 }
 
 void Manager::processNetworkerChainRequest(const Message& msg)
 {
-    MSG_NETWORKER_MANAGER_CHAINREQUEST incoming{ msg };
+    MSG_NETWORKER_MANAGER_BLOCKREQUEST incoming{ msg };
 
-    MSG_MANAGER_NETWORKER_CHAIN outgoing;
-
-    std::copy_if(
+    MSG_MANAGER_NETWORKER_BLOCK outgoing;
+    outgoing.block = *std::find_if(
         std::begin(chain),
         std::end(chain),
-        std::back_inserter(outgoing.chain),
-        [maxId = incoming.maxId](const Block& block)
+        [&incoming](const Block& block)
         {
-            return block.id <= maxId;
-        }
-    );
+            return block.id == incoming.blockId;
+        }); // Slow operation for now
     
     connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
-}
-
-std::optional<std::set<u64>> Manager::getValidTransHashes(std::vector<Block>& chain)
-{
-    std::optional<u64> hashOfLastBlock;
-    std::set<u64> transactionHashes;
-
-    for(Block& block : chain)
-    {
-        if(!block.isValid())
-        {
-            logger.logWarning("Block is invalid. Aborting");
-            return std::nullopt;
-        }
-
-        if(!hashOfLastBlock.has_value())
-        {
-            hashOfLastBlock = block.calculateFullHash();
-        }
-        else if(block.hashOfLastBlock != hashOfLastBlock.value())
-        {
-            logger.logWarning({
-                {"event", "hashOfLastBlock does not match."},
-                {"block.hashOfLastBlock", block.hashOfLastBlock},
-                {"hashOfLastBlock", hashOfLastBlock.value()}
-            });
-            logger.logWarning("Block is invalid. Aborting");
-            return std::nullopt;
-        }
-
-        for(Transaction& t : block.transactions)
-        {
-            transactionHashes.insert(Transaction::hashValue(t));
-        }
-    }
-
-    return transactionHashes;
 }
 
 void Manager::pushBlock(Block& block)

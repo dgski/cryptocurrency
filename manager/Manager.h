@@ -6,7 +6,7 @@ constexpr u32 ASK_FOR_TRANS_FREQ = 60 * ONE_SECOND;
 
 class Manager : public Module
 {
-    std::vector<Block> chain;
+    std::list<Block> chain;
     std::map<str, u64> wallets;
 
     Block currentBlock;
@@ -45,4 +45,7 @@ public:
     static std::optional<std::set<u64>> getValidTransHashes(std::vector<Block>& chain);
 
     void pushBlock(Block& block);
+
+    void tryAbsorbChain(i32 orginSocket, std::list<Block> potentialChain);
+    void finalizeAbsorbChain(std::list<Block> chain);
 };

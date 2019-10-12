@@ -12,6 +12,10 @@ Networker::Networker(const char* iniFileName) : Module("networker")
     registerConnections({&connToManager, &connFromOtherNodes});
 
     const auto connStrings = splitStr(params.at("connsToOtherNodes"));
+    logger.logInfo({
+        {"event", "Registering External Nodes"},
+        {"count", (u64)connStrings.size()}
+    });
     for(const str& connString : connStrings)
     {
         auto& newConn = connsToOtherNodes.emplace_back();
@@ -43,14 +47,14 @@ void Networker::processMessage(const Message& msg)
             processRegisterNewNode(msg);
             return;
         }
-        case MSG_MANAGER_NETWORKER_CHAINREQUEST::id:
+        case MSG_MANAGER_NETWORKER_BLOCKREQUEST::id:
         {   
-            processManagerChainRequest(msg);
+            processManagerBlockRequest(msg);
             return;
         }
-        case MSG_NETWORKER_NETWORKER_CHAINREQUEST::id:
+        case MSG_NETWORKER_NETWORKER_BLOCKREQUEST::id:
         {
-            processChainRequestFromOtherNode(msg);
+            processBlockRequestFromOtherNode(msg);
             return;
         }
         default:
@@ -87,7 +91,7 @@ void Networker::processNewBlockFromOtherNode(const Message& msg)
 
     MSG_NETWORKER_MANAGER_NEWBLOCK outgoing;
     outgoing.block = std::move(incoming.block);
-    outgoing.connId = msg.socket;
+    outgoing.connSocket = msg.socket;
 
     connToManager.sendMessage(outgoing.msg());
 }
@@ -101,52 +105,52 @@ void Networker::processRegisterNewNode(const Message& msg)
     registerClientConnection(&newConn);
 }
 
-void Networker::processManagerChainRequest(const Message& msg)
+void Networker::processManagerBlockRequest(const Message& msg)
 {
-    MSG_MANAGER_NETWORKER_CHAINREQUEST incoming{ msg };
+    MSG_MANAGER_NETWORKER_BLOCKREQUEST incoming{ msg };
 
-    MSG_NETWORKER_NETWORKER_CHAINREQUEST outgoing;
-    outgoing.maxId = incoming.maxId;
+    MSG_NETWORKER_NETWORKER_BLOCKREQUEST outgoing;
+    outgoing.blockId = incoming.blockId;
 
     connFromOtherNodes.sendMessage(
-        incoming.connId,
+        incoming.connSocket,
         outgoing.msg(),
         [this, reqId = msg.reqId](const Message& msg)
         {
-            processManagerChainRequest_Reply(reqId, msg);
+            processManagerBlockRequest_Reply(reqId, msg);
         }
     );
 }
 
-void Networker::processManagerChainRequest_Reply(u32 reqId, const Message& msg)
+void Networker::processManagerBlockRequest_Reply(u32 reqId, const Message& msg)
 {
-    MSG_NETWORKER_NETWORKER_CHAIN incoming{ msg };
+    MSG_NETWORKER_NETWORKER_BLOCK incoming{ msg };
 
-    MSG_NETWORKER_MANAGER_CHAIN outgoing;
-    outgoing.chain = std::move(incoming.chain);
+    MSG_NETWORKER_MANAGER_BLOCK outgoing;
+    outgoing.block = std::move(incoming.block);
 
     connToManager.sendMessage(outgoing.msg(msg.reqId));
 }
 
-void Networker::processChainRequestFromOtherNode(const Message& msg)
+void Networker::processBlockRequestFromOtherNode(const Message& msg)
 {
-    MSG_NETWORKER_NETWORKER_CHAINREQUEST incoming{ msg };
+    MSG_NETWORKER_NETWORKER_BLOCKREQUEST incoming{ msg };
 
-    MSG_NETWORKER_MANAGER_CHAINREQUEST outgoing;
-    outgoing.maxId = incoming.maxId;
+    MSG_NETWORKER_MANAGER_BLOCKREQUEST outgoing;
+    outgoing.blockId = incoming.blockId;
 
-    connToManager.sendMessage(outgoing.msg(), [this, reqId = msg.reqId](const Message& msg)
+    connToManager.sendMessage(outgoing.msg(), [this, connSocket = msg.socket, reqId = msg.reqId](const Message& msg)
     {
-        processChainRequestFromOtherNode_Reply(reqId, msg);
+        processBlockRequestFromOtherNode_Reply(connSocket, reqId, msg);
     });
 }
 
-void Networker::processChainRequestFromOtherNode_Reply(u32 reqId, const Message& msg)
+void Networker::processBlockRequestFromOtherNode_Reply(i32 connSocket, u32 reqId, const Message& msg)
 {
-    MSG_MANAGER_NETWORKER_CHAIN incoming{ msg };
+    MSG_MANAGER_NETWORKER_BLOCK incoming{ msg };
 
-    MSG_NETWORKER_NETWORKER_CHAIN outgoing;
-    outgoing.chain = std::move(incoming.chain);
+    MSG_NETWORKER_NETWORKER_BLOCK outgoing;
+    outgoing.block = std::move(incoming.block);
 
-    connFromOtherNodes.sendMessage(outgoing.msg(msg.reqId));    
+    connFromOtherNodes.sendMessage(connSocket, outgoing.msg(reqId));    
 }

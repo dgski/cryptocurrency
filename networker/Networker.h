@@ -12,9 +12,9 @@ public:
     void processNewBlockFromOtherNode(const Message& msg);
     void processRegisterNewNode(const Message& msg);
 
-    void processManagerChainRequest(const Message& msg);
-    void processManagerChainRequest_Reply(u32 reqId, const Message& msg);
+    void processManagerBlockRequest(const Message& msg);
+    void processManagerBlockRequest_Reply(u32 reqId, const Message& msg);
 
-    void processChainRequestFromOtherNode(const Message& msg);
-    void processChainRequestFromOtherNode_Reply(u32 reqId, const Message& msg);
+    void processBlockRequestFromOtherNode(const Message& msg);
+    void processBlockRequestFromOtherNode_Reply(i32 connSocket, u32 reqId, const Message& msg);
 };
