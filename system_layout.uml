@@ -4,10 +4,18 @@ component Networker
 component Transactioner
 component Miners
 component Clients
+component LogCollector
+component OtherNodes
 
-Clients --> Transactioner
-Transactioner <--> Manager
-Manager <--> Networker
+Clients --> Transactioner : New Transactions
+Transactioner --> Manager : Transactions for next Block
+Manager <--> Networker : Incoming/Outgoing Blocks
+Miners --> Manager : Proof of Work calculations
 
-Miners <--> Manager
+LogCollector <-- Transactioner : Log Archiving
+LogCollector <-- Manager : Log Archiving
+LogCollector <-- Networker : Log Archiving
+LogCollector <-- Miners : Log Archiving
+
+Networker <--> OtherNodes : Incoming/Outgoing Blocks
 @enduml

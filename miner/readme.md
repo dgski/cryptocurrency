@@ -1,6 +1,6 @@
 # The Miner Module
 
-The Miner module is a simple module with two running threads and one external connection. It's purpose is to find the proof of work (nonce) given a certain base hash.
+Continually tries to calculate the proof of work using a base value representing the in-progress block (Received from the Manager module). When proof of work is found, value is sent to the Manager module, and mining is suspended until Manager begins constructing a new Block.
 
 ## Outgoing Messages
 - MSG_MINER_MANAGER_PROOFOFWORK - Contains the proof of work
@@ -8,11 +8,12 @@ The Miner module is a simple module with two running threads and one external co
 ## Incoming Messages
 - MSG_MANAGER_MINER_NEWBASEHASH - Contains the new Base Hash to use
 
-## Threads
-- Network thread: Receives And Sends Messages
-- Miner thread: finds proof of work
-- Communication between threads exists using protected variable (AtomicChannel)
+## Connections
+- Manager
+- LogCollector
 
 ## Configuration Parameters
+- logFileName - string value of filename for log output
+- connToLogCollector - ip address and port string
 - connToManager - ip address and port string
 - incrementSize - integer value of nonce incrementation during mining
