@@ -50,7 +50,7 @@ void Manager::processMessage(const Message& msg)
         }
         case MSG_NETWORKER_MANAGER_BLOCKREQUEST::id:
         {
-            processNetworkerChainRequest(msg);
+            processNetworkerBlockRequest(msg);
             return;
         }
         case MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET::id:
@@ -112,20 +112,7 @@ void Manager::processTransactionRequestReply(const Message& msg)
 
 void Manager::addTransactionToCurrentBlock(Transaction& t)
 {
-    auto itSender = currentBlockWalletDeltas.find(t.sender);
-    if(itSender == currentBlockWalletDeltas.end())
-    {
-        currentBlockWalletDeltas.emplace(t.sender, 0);
-    }
-    currentBlockWalletDeltas.at(t.sender) -= t.amount;
-
-    auto itRecipiant = currentBlockWalletDeltas.find(t.recipiant);
-    if(itRecipiant == currentBlockWalletDeltas.end())
-    {
-        currentBlockWalletDeltas.emplace(t.recipiant, 0);
-    }
-    currentBlockWalletDeltas.at(t.recipiant) += t.amount;
-
+    addTransactionToWallets(currentBlockWalletDeltas, t);
     currentBlock.transactions.push_back(t);
 }
 
@@ -212,16 +199,16 @@ void Manager::processPotentialWinningBlock(const Message& msg)
 {
     MSG_NETWORKER_MANAGER_NEWBLOCK incoming{ msg };
 
-    if(alreadyValidatingForeignChain)
+    if(chainValidationCapacity == 0)
     {
+        logger.logInfo("chainValidationCapacity == 0; Cannot validate another.");
+
         MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
         outgoing.voidRequest = true;
         connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
 
         return;
     }
-
-    alreadyValidatingForeignChain = true;
 
     if(currentBlock.id >= incoming.block.id)
     {
@@ -238,6 +225,8 @@ void Manager::processPotentialWinningBlock(const Message& msg)
         return;
     }
 
+    chainValidationCapacity -= 1;
+
     std::list<Block> potentialChain{ std::move(incoming.block) };
     tryAbsorbChain(msg.reqId, std::move(potentialChain));
 }
@@ -248,7 +237,9 @@ void Manager::tryAbsorbChain(u32 reqId, std::list<Block> potentialChain)
         {"potentialChain.size()", (u64)potentialChain.size()}
     });
 
-    if(!potentialChain.front().isValid())
+    Block& frontBlock = potentialChain.front();
+
+    if(!frontBlock.isValid())
     {
         logger.logInfo({
             {"event", "Block is not valid; not requesting further blocks"}
@@ -257,17 +248,19 @@ void Manager::tryAbsorbChain(u32 reqId, std::list<Block> potentialChain)
         MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
         outgoing.voidRequest = true;
         connFromNetworker.sendMessage(outgoing.msg(reqId));
-
+        
+        chainValidationCapacity += 1;
         return;
     }
 
-    if(potentialChain.front().id == 0)
+    if(frontBlock.id == 0 || hashToBlock.find(frontBlock.calculateFullHash()) != std::end(hashToBlock))
     {
         MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
         outgoing.voidRequest = true;
         connFromNetworker.sendMessage(outgoing.msg(reqId));
 
         finalizeAbsorbChain(std::move(potentialChain));
+        chainValidationCapacity += 1;
         return;
     }
 
@@ -290,64 +283,125 @@ void Manager::tryAbsorbChain(u32 reqId, std::list<Block> potentialChain)
 
 void Manager::finalizeAbsorbChain(std::list<Block> potentialChainFragment)
 {
-    // Check that in the meantime we did not accumulate a bigger chain
-    // TODO
+    if(chain.back().id >= potentialChainFragment.back().id)
+    {
+        logger.logInfo("In the meantime, our chain has become bigger, discarding fragment");
+        return;
+    }
 
     logger.logInfo("Foreign chain valid. Absorbing.");
 
-    // Splice the current chain into that range
-    // TODO
+    Block& frontBlock = potentialChainFragment.front();
 
-    // Remove effects of removed blocks, Add effects of added blocks
-    // TODO
+    // Find start of current chain fragment that will be replaced
+    auto itBlockIt = hashToBlock.find(frontBlock.calculateFullHash());
+
+    auto itToRemoveBegin = (itBlockIt != std::end(hashToBlock))?
+        itBlockIt->second :
+        std::begin(chain);
+
+    // Remove effects of removed blocks
+    std::for_each(itToRemoveBegin, std::end(chain), [this](const Block& block)
+    {
+        for(const Transaction& t : block.transactions)
+        {
+            removeTransactionFromWallets(wallets, t);
+        }
+
+        hashToBlock.erase(block.calculateFullHash());
+        idToBlock.erase(block.id);
+    });
+    
+    // Add effects of added blocks
+    for(auto it = std::begin(potentialChainFragment); it != std::end(potentialChainFragment); ++it)
+    {
+        for(const Transaction& t : it->transactions)
+        {
+            addTransactionToWallets(wallets, t);
+            removeTransactionFromCurrentBlock(t);
+        }
+
+        hashToBlock.emplace(it->calculateFullHash(), it);
+        idToBlock.emplace(it->id, it);
+    }
+
+    // Splice the incoming fragment onto the end of the chain
+    chain.erase(itToRemoveBegin, std::cend(chain));
+    chain.splice(std::cend(chain), potentialChainFragment);
 
     // Start working on new Block
     currentBlock.id = chain.back().id + 1;
     currentBlock.hashOfLastBlock = chain.back().calculateFullHash();
-    currentBlockWalletDeltas.clear();
-
-    std::remove_if(
-        std::begin(currentBlock.transactions),
-        std::end(currentBlock.transactions),
-        [this](Transaction& t)
-        {
-            return true; // TODO: Remove if transactions are already in Chain
-        });
 
     mintCurrency();
     sendBaseHashToMiners();
-    alreadyValidatingForeignChain = false;
 }
 
-void Manager::processNetworkerChainRequest(const Message& msg)
+void Manager::processNetworkerBlockRequest(const Message& msg)
 {
     MSG_NETWORKER_MANAGER_BLOCKREQUEST incoming{ msg };
 
-    MSG_MANAGER_NETWORKER_BLOCK outgoing;
-    outgoing.block = *std::find_if(
-        std::begin(chain),
-        std::end(chain),
-        [&incoming](const Block& block)
-        {
-            return block.id == incoming.blockId;
-        }); // Slow operation for now
-    
-    connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
+    const auto it = idToBlock.find(incoming.blockId);
+    if(it != std::end(idToBlock))
+    {
+        MSG_MANAGER_NETWORKER_BLOCK outgoing;
+        outgoing.block = *it->second;
+        connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
+    }    
 }
 
 void Manager::pushBlock(Block& block)
 {
     for(Transaction& t : block.transactions)
     {
-        if(t.sender == t.recipiant && t.amount == 2000)
-        {
-            wallets[t.sender] += t.amount;
-            continue;
-        }
-
-        wallets[t.sender] -= t.amount;
-        wallets[t.recipiant] -= t.amount;
+        addTransactionToWallets(wallets, t);
     }
 
     chain.push_back(block);
+    
+    hashToBlock.emplace(block.calculateFullHash(), std::prev(chain.end()));
+    idToBlock.emplace(block.id, std::prev(chain.end()));
+}
+
+void Manager::addTransactionToWallets(std::map<str, i64>& wallets, const Transaction& t)
+{
+    auto itSender = wallets.find(t.sender);
+
+    if(t.sender == t.recipiant && t.amount == 2000)
+    {
+        addToMapElementOrInsertZero(wallets, t.sender, (i64)t.amount);
+        return;
+    }
+
+    addToMapElementOrInsertZero(wallets, t.sender, -(i64)t.amount);
+    addToMapElementOrInsertZero(wallets, t.recipiant, (i64)t.amount);
+}
+
+void Manager::removeTransactionFromWallets(std::map<str, i64>& wallets, const Transaction& t)
+{
+    if(t.sender == t.recipiant && t.amount == 2000)
+    {
+        addToMapElementOrInsertZero(wallets, t.sender, -(i64)t.amount);
+        return;
+    }
+
+    addToMapElementOrInsertZero(wallets, t.sender, (i64)t.amount);
+    addToMapElementOrInsertZero(wallets, t.recipiant, -(i64)t.amount);
+}
+
+void Manager::removeTransactionFromCurrentBlock(const Transaction& t)
+{
+    const auto itTrans = std::find_if(
+        std::cbegin(currentBlock.transactions),
+        std::cend(currentBlock.transactions),
+        [&t](const Transaction& tt)
+        {
+            return Transaction::hashValue(t) == Transaction::hashValue(tt);
+        });
+
+    if(itTrans != std::cend(currentBlock.transactions))
+    {
+        removeTransactionFromWallets(currentBlockWalletDeltas, t);
+        currentBlock.transactions.erase(itTrans);
+    }
 }

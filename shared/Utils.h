@@ -73,3 +73,14 @@ struct pairHash
     }
 };
 
+template<typename K, typename V>
+void addToMapElementOrInsertZero(std::map<K, V>& m, K k, V v)
+{
+    auto it = m.find(k);
+    if(it == std::end(m))
+    {
+        it = m.emplace(k,v).first;
+    }
+
+    it->second += v;
+}

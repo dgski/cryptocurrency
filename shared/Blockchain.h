@@ -59,7 +59,6 @@ struct Block
                 logger.logWarning("Transaction signature is not valid");
                 return false;
             }
-            logger.logInfo("Finished Checking trans!");
         }
 
         return true;

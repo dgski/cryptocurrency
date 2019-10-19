@@ -7,7 +7,9 @@ constexpr u32 ASK_FOR_TRANS_FREQ = 60 * ONE_SECOND;
 class Manager : public Module
 {
     std::list<Block> chain;
-    std::map<str, u64> wallets;
+    std::map<u64, std::list<Block>::iterator> hashToBlock;
+    std::map<u64, std::list<Block>::iterator> idToBlock;
+    std::map<str, i64> wallets;
 
     Block currentBlock;
     std::map<str, i64> currentBlockWalletDeltas;
@@ -20,7 +22,7 @@ class Manager : public Module
 
     std::optional<RSAKeyPair> walletKeys;
 
-    bool alreadyValidatingForeignChain = false;
+    u32 chainValidationCapacity = 10;
 public:
     Manager(const char* iniFileName);
     void processMessage(const Message& msg);
@@ -42,7 +44,7 @@ public:
     void processPotentialWinningBlock(const Message& msg);
     void processPotentialWinningBlock_ChainReply(const Message& msg);
     void processPotentialWinningBlock_Finalize(const std::set<u64>& transactionHashes);
-    void processNetworkerChainRequest(const Message& msg);
+    void processNetworkerBlockRequest(const Message& msg);
 
     static std::optional<std::set<u64>> getValidTransHashes(std::vector<Block>& chain);
 
@@ -50,4 +52,9 @@ public:
 
     void tryAbsorbChain(u32 reqId, std::list<Block> potentialChain);
     void finalizeAbsorbChain(std::list<Block> chain);
+
+    static void addTransactionToWallets(std::map<str, i64>& wallets, const Transaction& t);
+    static void removeTransactionFromWallets(std::map<str, i64>& wallets, const Transaction& t);
+
+    void removeTransactionFromCurrentBlock(const Transaction& t);
 };

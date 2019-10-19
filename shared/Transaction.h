@@ -30,7 +30,6 @@ struct Transaction
 
     bool isSignatureValid() const
     {
-        logger.logInfo("About the check trans!");
         size_t hashValue{ Transaction::hashValue(*this) };
         auto keys = RSAKeyPair::create(sender);
         return keys.value().isSignatureValid(&hashValue, sizeof(size_t), signature);
