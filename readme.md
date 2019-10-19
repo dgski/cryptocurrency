@@ -11,7 +11,7 @@ This repository contains an implementation a simple Cryptocurrency with the foll
 ## Modules
 There are five main, inter-connected modules needed to run a single node. There is a readme for each module in their respective directories. The following table presents a high-level explanation of each:
 
-| Module Name| Instances Per Node| Responsibility | Connections |
+| Module Name| Instances Per Node| Responsibilities | Connections |
 |------------|--------|--------|---|
 | Manager    | 1| Assembles the next block by requesting waiting transactions from the Transactioner module, and coordinating mining efforts of the Miner modules. Once proof of work is received from a Miner, it sends out the Block to the Networker module; to be propagated to other nodes. Also validates blocks from other nodes, absorbing them if they belong to a longer chain. | Miners, Transactioner, Networker, LogCollector |
 | Miner    | 1..N| Continually tries to calculate the proof of work using a base value representing the in-progress block (Received from the Manager module). When proof of work is found, value is sent to the Manager module, and mining is suspended until Manager begins constructing a new Block.| Manager, LogCollector |
