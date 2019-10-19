@@ -1,6 +1,6 @@
 # The Networker Module
 
-The Networker module accepts new Blocks from the Manager module to propagate to other Nodes, as well as Blocks from other nodes to the Manager Module.
+Responsible for connections to other nodes. Propagates new blocks from the local Manager module to the outside world and forwards new external blocks for consumption by the Manager module.
 
 ## Incoming Messages
 - MSG_MANAGER_NETWORKER_NEWBLOCK - New Block to Propagate from Manager
@@ -18,6 +18,8 @@ The Networker module accepts new Blocks from the Manager module to propagate to 
 - MSG_NETWORKER_NETWORKER_CHAIN - A chain from an external node
 
 ## Configuration Parameters
+- logFileName - string value of filename for log output
+- connToLogCollector - ip address and port string
 - connToManager - ip address and port string
 - connFromOtherNodes - ip address and port string
 - connsToOtherNodes - comma seperated list of ip address and port strings

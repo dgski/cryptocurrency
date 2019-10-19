@@ -1,6 +1,6 @@
 # The Manager Module
 
-The Manager module accepts new transactions from the Transactioner module, constructs a new block and coordinates mining efforts with the Mining module.
+Assembles the next block by requesting waiting transactions from the Transactioner module, and coordinating mining efforts of the Miner modules. Once proof of work is received from a Miner, it sends out the Block to the Networker module; to be propagated to other nodes. Also validates blocks from other nodes, absorbing them if they belong to a longer chain.
 
 ## Incoming Messages
 - MSG_A_MANAGER_TRANSACTIONER_TRANSREQ -  Contains New Transactions
@@ -15,7 +15,15 @@ The Manager module accepts new transactions from the Transactioner module, const
 - MSG_MANAGER_MINER_NEWBASEHASH - Sends the new Base Hash to the Miner modules
 - MSG_MANAGER_NETWORKER_CHAIN - Sends the current chain to the networker module
 
+## Connections
+- Miners
+- Transactioner
+- Networker
+- LogCollector
+
 ## Configuration Parameters
+- logFileName - string value of filename for log output
+- connToLogCollector - ip address and port string
 - connFromMiners - ip address and port string
 - connFromTransactioner - ip address and port string
 - connFromNetworker - ip address and port string
