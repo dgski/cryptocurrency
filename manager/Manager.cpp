@@ -212,6 +212,17 @@ void Manager::processPotentialWinningBlock(const Message& msg)
 {
     MSG_NETWORKER_MANAGER_NEWBLOCK incoming{ msg };
 
+    if(alreadyValidatingForeignChain)
+    {
+        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
+        outgoing.voidRequest = true;
+        connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
+
+        return;
+    }
+
+    alreadyValidatingForeignChain = true;
+
     if(currentBlock.id >= incoming.block.id)
     {
         logger.logInfo({
@@ -219,36 +230,53 @@ void Manager::processPotentialWinningBlock(const Message& msg)
             {"currentBlock.id", currentBlock.id},
             {"incoming.block.id", incoming.block.id}
         });
+        
+        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
+        outgoing.voidRequest = true;
+        connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
+
         return;
     }
 
     std::list<Block> potentialChain{ std::move(incoming.block) };
-    tryAbsorbChain(incoming.connSocket, std::move(potentialChain));
+    tryAbsorbChain(msg.reqId, std::move(potentialChain));
 }
 
-void Manager::tryAbsorbChain(i32 orginSocket, std::list<Block> potentialChain)
+void Manager::tryAbsorbChain(u32 reqId, std::list<Block> potentialChain)
 {
+    logger.logInfo({
+        {"potentialChain.size()", (u64)potentialChain.size()}
+    });
+
     if(!potentialChain.front().isValid())
     {
         logger.logInfo({
             {"event", "Block is not valid; not requesting further blocks"}
         });
+
+        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
+        outgoing.voidRequest = true;
+        connFromNetworker.sendMessage(outgoing.msg(reqId));
+
         return;
     }
 
-    if(potentialChain.front().id == 0 ||
-        potentialChain.front().hashOfLastBlock == 1 /* is In Current Block chain*/)
+    if(potentialChain.front().id == 0)
     {
+        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
+        outgoing.voidRequest = true;
+        connFromNetworker.sendMessage(outgoing.msg(reqId));
+
         finalizeAbsorbChain(std::move(potentialChain));
         return;
     }
 
     MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
+    outgoing.voidRequest = false;
     outgoing.blockId = potentialChain.front().id - 1;
-    outgoing.connSocket = orginSocket;
     
     connFromNetworker.sendMessage(
-        outgoing.msg(),
+        outgoing.msg(reqId),
         [this, chain = std::move(potentialChain)](const Message& msg)
         {
             MSG_NETWORKER_MANAGER_BLOCK incoming( msg );
@@ -256,7 +284,7 @@ void Manager::tryAbsorbChain(i32 orginSocket, std::list<Block> potentialChain)
             std::list<Block> potentialChain = std::move(chain);
             potentialChain.push_front(incoming.block);
             
-            tryAbsorbChain(incoming.connSocket, std::move(potentialChain));
+            tryAbsorbChain(msg.reqId, std::move(potentialChain));
         });
 }
 
@@ -288,7 +316,7 @@ void Manager::finalizeAbsorbChain(std::list<Block> potentialChainFragment)
 
     mintCurrency();
     sendBaseHashToMiners();
-    return;
+    alreadyValidatingForeignChain = false;
 }
 
 void Manager::processNetworkerChainRequest(const Message& msg)

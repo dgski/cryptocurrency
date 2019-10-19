@@ -33,6 +33,7 @@ public:
     int socket;
 
     u32 id = 0;
+    bool isReply = false;
     u32 reqId = 0;
     u64 size = 0;
     std::vector<byte> data;
@@ -56,6 +57,13 @@ public:
         data.resize(data.size() + sizeof(i32));
         memcpy(data.data() + size, &val, sizeof(i32));
         size += sizeof(i32);
+    }
+
+    void compose_val(bool val)
+    {
+        data.resize(data.size() + sizeof(bool));
+        memcpy(data.data() + size, &val, sizeof(bool));
+        size += sizeof(bool);
     }
 
     template<typename Col>
@@ -103,7 +111,7 @@ public:
 
     size_t getFullSize() const
     {
-        return sizeof(u32) + sizeof(u32) + sizeof(u64) + data.size();
+        return sizeof(u32) + sizeof(bool) + sizeof(u32) + sizeof(u64) + data.size();
     }
 
     void logMsg(const char* direction) const
@@ -112,6 +120,7 @@ public:
             {"event", direction},
             {"socket", socket},
             {"id", id},
+            {"isReply", isReply},
             {"reqId", reqId},
             {"size", size}
         });
@@ -143,6 +152,12 @@ public:
     {
         val = *(i32*)ptr;
         ptr += sizeof(i32);
+    }
+
+    void parse_val(bool& val)
+    {
+        val = *(bool*)ptr;
+        ptr += sizeof(bool);
     }
 
     template<typename Col>
@@ -217,7 +232,7 @@ protected:
 
     u32 getNextReqId()
     {
-        u32 next = nextReqId;
+        const u32 next = nextReqId;
         nextReqId++;
         if(nextReqId == 0)
             nextReqId++;
@@ -479,6 +494,11 @@ public:
             {
                 msg.message.reqId = getNextReqId();
             }
+            else
+            {
+                msg.message.isReply = true;
+            }
+
             if(msg.callback.has_value())
             {
                 callbacks[std::pair{*it, msg.message.reqId}] = msg.callback.value();
@@ -510,6 +530,11 @@ public:
         {
             msg.message.reqId = getNextReqId();
         }
+        else
+        {
+            msg.message.isReply = true;
+        }
+
         if(msg.callback.has_value())
         {
             callbacks[std::pair{msg.socket.value(), msg.message.reqId}] = msg.callback.value();
@@ -647,6 +672,11 @@ public:
                     {
                         msg.message.reqId = getNextReqId();
                     }
+                    else
+                    {
+                        msg.message.isReply = true;
+                    }
+
                     if(msg.callback.has_value())
                     {
                         callbacks[std::pair{socketFileDescriptor, msg.message.reqId}] = msg.callback.value();

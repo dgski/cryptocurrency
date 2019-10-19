@@ -372,7 +372,6 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
     constexpr static u32 id = 9;
 
     Block block;
-    i32 connSocket;
 
     MSG_NETWORKER_MANAGER_NEWBLOCK(){}
 
@@ -386,13 +385,13 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse(block, connSocket);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose(block, connSocket);
+        msg.compose(block);
     }
 
     void logMsg() const override
@@ -403,7 +402,6 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
             {"block.id", block.id},
             {"block.transactions.size()", (u64)block.transactions.size()},
             {"block.proofOfWork", block.proofOfWork},
-            {"connSocket", connSocket}
         });
     }
 };
@@ -412,8 +410,8 @@ struct MSG_MANAGER_NETWORKER_BLOCKREQUEST : public MSG_STRUCT
 {
     constexpr static u32 id = 10;
 
+    bool voidRequest;
     u64 blockId;
-    i32 connSocket;
 
     MSG_MANAGER_NETWORKER_BLOCKREQUEST(){}
 
@@ -427,13 +425,13 @@ struct MSG_MANAGER_NETWORKER_BLOCKREQUEST : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse(blockId, connSocket);
+        parser.parse(blockId, voidRequest);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose(blockId, connSocket);
+        msg.compose(blockId, voidRequest);
     }
 
     void logMsg() const override
@@ -442,7 +440,7 @@ struct MSG_MANAGER_NETWORKER_BLOCKREQUEST : public MSG_STRUCT
             {"event", "message"},
             {"name", "MSG_MANAGER_NETWORKER_BLOCKREQUEST"},
             {"blockId", blockId},
-            {"connSocket", connSocket}
+            {"voidRequest", voidRequest}
         });
     }
 };
@@ -565,7 +563,6 @@ struct MSG_NETWORKER_MANAGER_BLOCK : public MSG_STRUCT
     constexpr static u32 id = 13;
 
     Block block;
-    i32 connSocket;
 
     MSG_NETWORKER_MANAGER_BLOCK(){}
 
@@ -579,13 +576,13 @@ struct MSG_NETWORKER_MANAGER_BLOCK : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse(block, connSocket);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose(block, connSocket);
+        msg.compose(block);
     }
 
     void logMsg() const override
@@ -595,8 +592,7 @@ struct MSG_NETWORKER_MANAGER_BLOCK : public MSG_STRUCT
             {"name", "MSG_NETWORKER_MANAGER_BLOCK"},
             {"block.id", block.id},
             {"block.transactions.size()", (u64)block.transactions.size()},
-            {"block.proofOfWork", block.proofOfWork},
-            {"connSocket", connSocket}
+            {"block.proofOfWork", block.proofOfWork}
         });
     }
 };

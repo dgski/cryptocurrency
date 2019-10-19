@@ -19,6 +19,8 @@ class Manager : public Module
     ServerConnection connFromNetworker;
 
     std::optional<RSAKeyPair> walletKeys;
+
+    bool alreadyValidatingForeignChain = false;
 public:
     Manager(const char* iniFileName);
     void processMessage(const Message& msg);
@@ -46,6 +48,6 @@ public:
 
     void pushBlock(Block& block);
 
-    void tryAbsorbChain(i32 orginSocket, std::list<Block> potentialChain);
+    void tryAbsorbChain(u32 reqId, std::list<Block> potentialChain);
     void finalizeAbsorbChain(std::list<Block> chain);
 };

@@ -47,11 +47,6 @@ void Networker::processMessage(const Message& msg)
             processRegisterNewNode(msg);
             return;
         }
-        case MSG_MANAGER_NETWORKER_BLOCKREQUEST::id:
-        {   
-            processManagerBlockRequest(msg);
-            return;
-        }
         case MSG_NETWORKER_NETWORKER_BLOCKREQUEST::id:
         {
             processBlockRequestFromOtherNode(msg);
@@ -79,6 +74,15 @@ void Networker::processNewBlockFromManager(const Message& msg)
     }
 }
 
+void Networker::processRegisterNewNode(const Message& msg)
+{
+    MSG_NETWORKER_NETWORKER_REGISTERME incoming{ msg };
+
+    ClientConnection& newConn = connsToOtherNodes.emplace_back();
+    newConn.init(strToIp(incoming.connStr));
+    registerClientConnection(&newConn);
+}
+
 void Networker::processNewBlockFromOtherNode(const Message& msg)
 {
     MSG_NETWORKER_NETWORKER_NEWBLOCK incoming{ msg };   
@@ -91,29 +95,27 @@ void Networker::processNewBlockFromOtherNode(const Message& msg)
 
     MSG_NETWORKER_MANAGER_NEWBLOCK outgoing;
     outgoing.block = std::move(incoming.block);
-    outgoing.connSocket = msg.socket;
 
-    connToManager.sendMessage(outgoing.msg());
+    connToManager.sendMessage(outgoing.msg(),[this, connSocket = msg.socket](const Message& msg)
+    {
+        processManagerBlockRequest(connSocket, msg);
+    });
 }
 
-void Networker::processRegisterNewNode(const Message& msg)
-{
-    MSG_NETWORKER_NETWORKER_REGISTERME incoming{ msg };
-
-    ClientConnection& newConn = connsToOtherNodes.emplace_back();
-    newConn.init(strToIp(incoming.connStr));
-    registerClientConnection(&newConn);
-}
-
-void Networker::processManagerBlockRequest(const Message& msg)
+void Networker::processManagerBlockRequest(int connSocket, const Message& msg)
 {
     MSG_MANAGER_NETWORKER_BLOCKREQUEST incoming{ msg };
+
+    if(incoming.voidRequest)
+    {
+        return;
+    }
 
     MSG_NETWORKER_NETWORKER_BLOCKREQUEST outgoing;
     outgoing.blockId = incoming.blockId;
 
     connFromOtherNodes.sendMessage(
-        incoming.connSocket,
+        connSocket,
         outgoing.msg(),
         [this, reqId = msg.reqId](const Message& msg)
         {
@@ -129,7 +131,10 @@ void Networker::processManagerBlockRequest_Reply(u32 reqId, const Message& msg)
     MSG_NETWORKER_MANAGER_BLOCK outgoing;
     outgoing.block = std::move(incoming.block);
 
-    connToManager.sendMessage(outgoing.msg(msg.reqId));
+    connToManager.sendMessage(outgoing.msg(reqId),[this, connSocket = msg.socket](const Message& msg)
+    {
+        processManagerBlockRequest(connSocket, msg);
+    });
 }
 
 void Networker::processBlockRequestFromOtherNode(const Message& msg)
@@ -139,13 +144,15 @@ void Networker::processBlockRequestFromOtherNode(const Message& msg)
     MSG_NETWORKER_MANAGER_BLOCKREQUEST outgoing;
     outgoing.blockId = incoming.blockId;
 
-    connToManager.sendMessage(outgoing.msg(), [this, connSocket = msg.socket, reqId = msg.reqId](const Message& msg)
+    i32 connSocket = msg.socket;
+    logger.logInfo({{"connSocket", connSocket}});
+    connToManager.sendMessage(outgoing.msg(), [this, connSocket, reqId = msg.reqId](const Message& msg)
     {
         processBlockRequestFromOtherNode_Reply(connSocket, reqId, msg);
     });
 }
 
-void Networker::processBlockRequestFromOtherNode_Reply(i32 connSocket, u32 reqId, const Message& msg)
+void Networker::processBlockRequestFromOtherNode_Reply(int connSocket, u32 reqId, const Message& msg)
 {
     MSG_MANAGER_NETWORKER_BLOCK incoming{ msg };
 
