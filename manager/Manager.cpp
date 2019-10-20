@@ -195,6 +195,13 @@ void Manager::processMinerHashRequest(const Message& msg)
     connFromMiners.sendMessage(msg.socket, outgoing.msg());
 }
 
+void Manager::sendVoidBlockRequest(const u32 reqId)
+{
+    MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
+    outgoing.voidRequest = true;
+    connFromNetworker.sendMessage(outgoing.msg(reqId));
+}
+
 void Manager::processPotentialWinningBlock(const Message& msg)
 {
     MSG_NETWORKER_MANAGER_NEWBLOCK incoming{ msg };
@@ -202,11 +209,7 @@ void Manager::processPotentialWinningBlock(const Message& msg)
     if(chainValidationCapacity == 0)
     {
         logger.logInfo("chainValidationCapacity == 0; Cannot validate another.");
-
-        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
-        outgoing.voidRequest = true;
-        connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
-
+        sendVoidBlockRequest(msg.reqId);
         return;
     }
 
@@ -218,10 +221,7 @@ void Manager::processPotentialWinningBlock(const Message& msg)
             {"incoming.block.id", incoming.block.id}
         });
         
-        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
-        outgoing.voidRequest = true;
-        connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
-
+        sendVoidBlockRequest(msg.reqId);
         return;
     }
 
@@ -245,20 +245,14 @@ void Manager::tryAbsorbChain(u32 reqId, std::list<Block> potentialChain)
             {"event", "Block is not valid; not requesting further blocks"}
         });
 
-        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
-        outgoing.voidRequest = true;
-        connFromNetworker.sendMessage(outgoing.msg(reqId));
-        
+        sendVoidBlockRequest(reqId);
         chainValidationCapacity += 1;
         return;
     }
 
     if(frontBlock.id == 0 || hashToBlock.find(frontBlock.calculateFullHash()) != std::end(hashToBlock))
     {
-        MSG_MANAGER_NETWORKER_BLOCKREQUEST outgoing;
-        outgoing.voidRequest = true;
-        connFromNetworker.sendMessage(outgoing.msg(reqId));
-
+        sendVoidBlockRequest(reqId);
         finalizeAbsorbChain(std::move(potentialChain));
         chainValidationCapacity += 1;
         return;

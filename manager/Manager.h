@@ -41,6 +41,7 @@ public:
     void processMinerHashRequest(const Message& msg);
     
     // Networker related
+    void sendVoidBlockRequest(const u32 reqId);
     void processPotentialWinningBlock(const Message& msg);
     void processPotentialWinningBlock_ChainReply(const Message& msg);
     void processPotentialWinningBlock_Finalize(const std::set<u64>& transactionHashes);
