@@ -277,9 +277,15 @@ void Manager::tryAbsorbChain(u32 reqId, std::list<Block> potentialChain)
     
     connFromNetworker.sendMessage(
         outgoing.msg(reqId),
-        [this, chain = std::move(potentialChain)](const Message& msg)
+        [this, chain = std::move(potentialChain), reqBlockId = outgoing.blockId](const Message& msg)
         {
             MSG_NETWORKER_MANAGER_BLOCK incoming( msg );
+
+            if(incoming.block.id != reqBlockId)
+            {
+                logger.logInfo("Did not receive requested block. Abandoning validation process");
+                return;
+            }
 
             std::list<Block> potentialChain = std::move(chain);
             potentialChain.push_front(incoming.block);
@@ -339,7 +345,6 @@ void Manager::finalizeAbsorbChain(std::list<Block> potentialChainFragment)
     // Start working on new Block
     currentBlock.id = chain.back().id + 1;
     currentBlock.hashOfLastBlock = chain.back().calculateFullHash();
-
     mintCurrency();
     sendBaseHashToMiners();
 }
