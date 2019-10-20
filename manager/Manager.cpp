@@ -102,7 +102,7 @@ void Manager::processTransactionRequestReply(const Message& msg)
         currentBaseHash = newBaseHash;
         logger.logInfo({
             {"event", "currentBaseHash has changed, Propagating to Miners."},
-            {"currentBaseHash", currentBaseHash}   
+            {"currentBaseHash", currentBaseHash}
         });
         sendBaseHashToMiners();
     }
@@ -193,6 +193,19 @@ void Manager::processMinerHashRequest(const Message& msg)
     outgoing.newBaseHash = currentBaseHash;
 
     connFromMiners.sendMessage(msg.socket, outgoing.msg());
+}
+
+void Manager::pushBlock(Block& block)
+{
+    for(Transaction& t : block.transactions)
+    {
+        addTransactionToWallets(wallets, t);
+    }
+
+    chain.push_back(block);
+    
+    hashToBlock.emplace(block.calculateFullHash(), std::prev(chain.end()));
+    idToBlock.emplace(block.id, std::prev(chain.end()));
 }
 
 void Manager::sendVoidBlockRequest(const u32 reqId)
@@ -331,6 +344,23 @@ void Manager::finalizeAbsorbChain(std::list<Block> potentialChainFragment)
     sendBaseHashToMiners();
 }
 
+void Manager::removeTransactionFromCurrentBlock(const Transaction& t)
+{
+    const auto itTrans = std::find_if(
+        std::cbegin(currentBlock.transactions),
+        std::cend(currentBlock.transactions),
+        [&t](const Transaction& tt)
+        {
+            return Transaction::hashValue(t) == Transaction::hashValue(tt);
+        });
+
+    if(itTrans != std::cend(currentBlock.transactions))
+    {
+        removeTransactionFromWallets(currentBlockWalletDeltas, t);
+        currentBlock.transactions.erase(itTrans);
+    }
+}
+
 void Manager::processNetworkerBlockRequest(const Message& msg)
 {
     MSG_NETWORKER_MANAGER_BLOCKREQUEST incoming{ msg };
@@ -342,19 +372,6 @@ void Manager::processNetworkerBlockRequest(const Message& msg)
         outgoing.block = *it->second;
         connFromNetworker.sendMessage(outgoing.msg(msg.reqId));
     }    
-}
-
-void Manager::pushBlock(Block& block)
-{
-    for(Transaction& t : block.transactions)
-    {
-        addTransactionToWallets(wallets, t);
-    }
-
-    chain.push_back(block);
-    
-    hashToBlock.emplace(block.calculateFullHash(), std::prev(chain.end()));
-    idToBlock.emplace(block.id, std::prev(chain.end()));
 }
 
 void Manager::addTransactionToWallets(std::map<str, i64>& wallets, const Transaction& t)
@@ -381,21 +398,4 @@ void Manager::removeTransactionFromWallets(std::map<str, i64>& wallets, const Tr
 
     addToMapElementOrInsertZero(wallets, t.sender, (i64)t.amount);
     addToMapElementOrInsertZero(wallets, t.recipiant, -(i64)t.amount);
-}
-
-void Manager::removeTransactionFromCurrentBlock(const Transaction& t)
-{
-    const auto itTrans = std::find_if(
-        std::cbegin(currentBlock.transactions),
-        std::cend(currentBlock.transactions),
-        [&t](const Transaction& tt)
-        {
-            return Transaction::hashValue(t) == Transaction::hashValue(tt);
-        });
-
-    if(itTrans != std::cend(currentBlock.transactions))
-    {
-        removeTransactionFromWallets(currentBlockWalletDeltas, t);
-        currentBlock.transactions.erase(itTrans);
-    }
 }

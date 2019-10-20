@@ -39,23 +39,17 @@ public:
     void sendBaseHashToMiners();
     void processIncomingProofOfWork(const Message& msg);
     void processMinerHashRequest(const Message& msg);
+    void pushBlock(Block& block);
     
     // Networker related
     void sendVoidBlockRequest(const u32 reqId);
     void processPotentialWinningBlock(const Message& msg);
-    void processPotentialWinningBlock_ChainReply(const Message& msg);
-    void processPotentialWinningBlock_Finalize(const std::set<u64>& transactionHashes);
-    void processNetworkerBlockRequest(const Message& msg);
-
-    static std::optional<std::set<u64>> getValidTransHashes(std::vector<Block>& chain);
-
-    void pushBlock(Block& block);
-
     void tryAbsorbChain(u32 reqId, std::list<Block> potentialChain);
     void finalizeAbsorbChain(std::list<Block> chain);
+    void removeTransactionFromCurrentBlock(const Transaction& t);
+    void processNetworkerBlockRequest(const Message& msg);
 
+    // Utils
     static void addTransactionToWallets(std::map<str, i64>& wallets, const Transaction& t);
     static void removeTransactionFromWallets(std::map<str, i64>& wallets, const Transaction& t);
-
-    void removeTransactionFromCurrentBlock(const Transaction& t);
 };
