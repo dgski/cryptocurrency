@@ -61,6 +61,11 @@ IpInfo strToIp(str s)
 
 std::vector<str> splitStr(const str& input)
 {
+    if(input.empty())
+    {
+        return {};
+    }
+
     std::vector<str> output;
     std::string tmp;
     for(char c : input)
@@ -74,6 +79,7 @@ std::vector<str> splitStr(const str& input)
         tmp.push_back(c);
     }
 
+    output.push_back(std::move(tmp));
     return output;
 }
 

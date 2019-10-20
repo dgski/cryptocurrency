@@ -13,7 +13,7 @@ void Module::run()
                 s->getIncomingQueue(incomingQueue);
                 for(auto& msg : incomingQueue)
                 {
-                    if(msg.callback.has_value())
+                    if(msg.callback.has_value() && msg.message.isReply)
                     {
                         msg.callback.value()(msg.message);
                     }
@@ -30,7 +30,7 @@ void Module::run()
                 c->getIncomingQueue(incomingQueue);
                 for(auto& msg : incomingQueue)
                 {
-                    if(msg.callback.has_value())
+                    if(msg.callback.has_value() && msg.message.isReply)
                     {
                         msg.callback.value()(msg.message);
                     }

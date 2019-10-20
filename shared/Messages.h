@@ -26,15 +26,15 @@ struct MSG_STRUCT
         return msg;
     }
 
-    template<u32 id>
-    void checkId(const Message& msg)
+    template<u32 enforcedId>
+    static void checkId(const Message& msg)
     {
-        if(msg.id != id)
+        if(msg.id != enforcedId)
         {
             logger.logError({
                 {"event", "Incorrect Parse Prevented"},
-                {"parsingMsgId", id},
-                {"givenId", id}
+                {"parsingMsgId", enforcedId},
+                {"givenId", msg.id}
             });
             throw std::runtime_error("Wrong message id for parsing");
         }
@@ -372,7 +372,6 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
     constexpr static u32 id = 9;
 
     Block block;
-    i32 connId;
 
     MSG_NETWORKER_MANAGER_NEWBLOCK(){}
 
@@ -386,13 +385,13 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse(block, connId);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose(block, connId);
+        msg.compose(block);
     }
 
     void logMsg() const override
@@ -400,23 +399,23 @@ struct MSG_NETWORKER_MANAGER_NEWBLOCK : public MSG_STRUCT
         logger.logInfo({
             {"event", "message"},
             {"name", "MSG_NETWORKER_MANAGER_NEWBLOCK"},
+            {"block.id", block.id},
             {"block.transactions.size()", (u64)block.transactions.size()},
             {"block.proofOfWork", block.proofOfWork},
-            {"connId", connId}
         });
     }
 };
 
-struct MSG_MANAGER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
+struct MSG_MANAGER_NETWORKER_BLOCKREQUEST : public MSG_STRUCT
 {
     constexpr static u32 id = 10;
 
-    u64 maxId;
-    i32 connId;
+    bool voidRequest;
+    u64 blockId;
 
-    MSG_MANAGER_NETWORKER_CHAINREQUEST(){}
+    MSG_MANAGER_NETWORKER_BLOCKREQUEST(){}
 
-    MSG_MANAGER_NETWORKER_CHAINREQUEST(const Message& msg)
+    MSG_MANAGER_NETWORKER_BLOCKREQUEST(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -426,34 +425,35 @@ struct MSG_MANAGER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse(maxId);
+        parser.parse(blockId, voidRequest);
     }
 
     void compose(Message& msg) const override
     {
-        msg.compose(maxId);
+        msg.id = id;
+        msg.compose(blockId, voidRequest);
     }
 
     void logMsg() const override
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_MANAGER_NETWORKER_CHAINREQUEST"},
-            {"connId", connId},
-            {"maxId", maxId}
+            {"name", "MSG_MANAGER_NETWORKER_BLOCKREQUEST"},
+            {"blockId", blockId},
+            {"voidRequest", voidRequest}
         });
     }
 };
 
-struct MSG_NETWORKER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
+struct MSG_NETWORKER_NETWORKER_BLOCKREQUEST : public MSG_STRUCT
 {
     constexpr static u32 id = 11;
 
-    u64 maxId;
+    u64 blockId;
 
-    MSG_NETWORKER_NETWORKER_CHAINREQUEST(){}
+    MSG_NETWORKER_NETWORKER_BLOCKREQUEST(){}
 
-    MSG_NETWORKER_NETWORKER_CHAINREQUEST(const Message& msg)
+    MSG_NETWORKER_NETWORKER_BLOCKREQUEST(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -463,33 +463,34 @@ struct MSG_NETWORKER_NETWORKER_CHAINREQUEST : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse(maxId);
+        parser.parse(blockId);
     }
 
     void compose(Message& msg) const override
     {
-        msg.compose(maxId);
+        msg.id = id;
+        msg.compose(blockId);
     }
 
     void logMsg() const override
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_NETWORKER_NETWORKER_CHAINREQUEST"},
-            {"maxId", maxId}
+            {"name", "MSG_NETWORKER_NETWORKER_BLOCKREQUEST"},
+            {"blockId", blockId}
         });
     }
 };
 
-struct MSG_NETWORKER_MANAGER_CHAINREQUEST : public MSG_STRUCT
+struct MSG_NETWORKER_MANAGER_BLOCKREQUEST : public MSG_STRUCT
 {
     constexpr static u32 id = 11;
 
-    u64 maxId;
+    u64 blockId;
 
-    MSG_NETWORKER_MANAGER_CHAINREQUEST(){}
+    MSG_NETWORKER_MANAGER_BLOCKREQUEST(){}
 
-    MSG_NETWORKER_MANAGER_CHAINREQUEST(const Message& msg)
+    MSG_NETWORKER_MANAGER_BLOCKREQUEST(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -499,33 +500,34 @@ struct MSG_NETWORKER_MANAGER_CHAINREQUEST : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse(maxId);
+        parser.parse(blockId);
     }
 
     void compose(Message& msg) const override
     {
-        msg.compose(maxId);
+        msg.id = id;
+        msg.compose(blockId);
     }
 
     void logMsg() const override
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_NETWORKER_MANAGER_CHAINREQUEST"},
-            {"maxId", maxId}
+            {"name", "MSG_NETWORKER_MANAGER_BLOCKREQUEST"},
+            {"blockId", blockId}
         });
     }
 };
 
-struct MSG_MANAGER_NETWORKER_CHAIN : public MSG_STRUCT
+struct MSG_MANAGER_NETWORKER_BLOCK : public MSG_STRUCT
 {
     constexpr static u32 id = 12;
 
-    std::vector<Block> chain;
+    Block block;
 
-    MSG_MANAGER_NETWORKER_CHAIN(){}
+    MSG_MANAGER_NETWORKER_BLOCK(){}
 
-    MSG_MANAGER_NETWORKER_CHAIN(const Message& msg)
+    MSG_MANAGER_NETWORKER_BLOCK(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -535,34 +537,36 @@ struct MSG_MANAGER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse(chain);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose(chain);
+        msg.compose(block);
     }
 
     void logMsg() const override
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_MANAGER_NETWORKER_CHAIN"},
-            {"chain.size()", (u64)chain.size()}
+            {"name", "MSG_MANAGER_NETWORKER_BLOCK"},
+            {"block.id", block.id},
+            {"block.transactions.size()", (u64)block.transactions.size()},
+            {"block.proofOfWork", block.proofOfWork}
         });
     }
 };
 
-struct MSG_NETWORKER_MANAGER_CHAIN : public MSG_STRUCT
+struct MSG_NETWORKER_MANAGER_BLOCK : public MSG_STRUCT
 {
     constexpr static u32 id = 13;
 
-    std::vector<Block> chain;
+    Block block;
 
-    MSG_NETWORKER_MANAGER_CHAIN(){}
+    MSG_NETWORKER_MANAGER_BLOCK(){}
 
-    MSG_NETWORKER_MANAGER_CHAIN(const Message& msg)
+    MSG_NETWORKER_MANAGER_BLOCK(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -572,34 +576,36 @@ struct MSG_NETWORKER_MANAGER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {
-        parser.parse(chain);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose(chain);
+        msg.compose(block);
     }
 
     void logMsg() const override
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_NETWORKER_MANAGER_CHAIN"},
-            {"chain.size()", (u64)chain.size()}
+            {"name", "MSG_NETWORKER_MANAGER_BLOCK"},
+            {"block.id", block.id},
+            {"block.transactions.size()", (u64)block.transactions.size()},
+            {"block.proofOfWork", block.proofOfWork}
         });
     }
 };
 
-struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
+struct MSG_NETWORKER_NETWORKER_BLOCK: public MSG_STRUCT
 {
     constexpr static u32 id = 14;
 
-    std::vector<Block> chain;
+    Block block;
 
-    MSG_NETWORKER_NETWORKER_CHAIN(){}
+    MSG_NETWORKER_NETWORKER_BLOCK(){}
 
-    MSG_NETWORKER_NETWORKER_CHAIN(const Message& msg)
+    MSG_NETWORKER_NETWORKER_BLOCK(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -609,21 +615,23 @@ struct MSG_NETWORKER_NETWORKER_CHAIN : public MSG_STRUCT
 
     void parse(Parser& parser) override
     {        
-        parser.parse(chain);
+        parser.parse(block);
     }
 
     void compose(Message& msg) const override
     {
         msg.id = id;
-        msg.compose(chain);
+        msg.compose(block);
     }
 
     void logMsg() const override
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_NETWORKER_NETWORKER_CHAIN"},
-            {"chain.size()", (u64)chain.size()}
+            {"name", "MSG_NETWORKER_NETWORKER_BLOCK"},
+            {"block.id", block.id},
+            {"block.transactions.size()", (u64)block.transactions.size()},
+            {"block.proofOfWork", block.proofOfWork}
         });
     }
 };
