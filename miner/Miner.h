@@ -9,6 +9,7 @@ class Miner : public Module
     AtomicChannel<u64> baseHash;
     u64 incrementSize;
 
+    std::unique_ptr<std::thread> miningThread;
 public:
     Miner(const char* iniFileName);
     void processMessage(const Message& msg);

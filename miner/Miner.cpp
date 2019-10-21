@@ -37,8 +37,7 @@ void Miner::startMining()
     logger.logInfo("Starting mining");
 
     currentlyMining = true;
-    std::thread t(&Miner::mine, this);
-    t.detach();
+    miningThread = std::make_unique<std::thread>(&Miner::mine, this);
     registerScheduledTask(ONE_SECOND, [this]()
     {
         checkProof();
@@ -107,6 +106,10 @@ void Miner::processManagerNewBaseHash(const Message& msg)
     MSG_MANAGER_MINER_NEWBASEHASH incoming{ msg };
     
     baseHash.set(incoming.newBaseHash);
+    if(miningThread && miningThread->joinable())
+    {
+        miningThread->join();
+    }
     if(!currentlyMining)
     {
         startMining();
