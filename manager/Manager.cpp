@@ -381,8 +381,6 @@ void Manager::processNetworkerBlockRequest(const Message& msg)
 
 void Manager::addTransactionToWallets(std::map<str, i64>& wallets, const Transaction& t)
 {
-    auto itSender = wallets.find(t.sender);
-
     if(t.sender == t.recipiant && t.amount == 2000)
     {
         addToMapElementOrInsertZero(wallets, t.sender, (i64)t.amount);

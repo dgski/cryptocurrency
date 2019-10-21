@@ -4,6 +4,7 @@ project(cryptocurrency)
 set(EXECUTABLE_OUTPUT_PATH "../../bin")
 
 ##! Add subprojects here
+add_subdirectory(shared)
 add_subdirectory(logcollector)
 add_subdirectory(manager)
 add_subdirectory(miner)
