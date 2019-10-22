@@ -21,7 +21,6 @@ class Manager : public Module
     ServerConnection connFromNetworker;
 
     std::optional<RSAKeyPair> walletKeys;
-
     u32 chainValidationCapacity = 10;
 public:
     Manager(const char* iniFileName);

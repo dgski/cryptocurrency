@@ -30,7 +30,7 @@ enum class ConnectionStatus
 class Message
 {
 public:
-    int socket;
+    i32 socket;
 
     u32 id = 0;
     bool isReply = false;
@@ -206,14 +206,14 @@ public:
     }
 };
 
-std::optional<Message> getFinalMessage(int socket);
-ConnectionStatus sendFinalMessage(int socket, const Message& msg);
+std::optional<Message> getFinalMessage(i32 socket);
+ConnectionStatus sendFinalMessage(i32 socket, const Message& msg);
 
 using Callback = std::function<void(Message&)>;
 
 struct EnquedMessage
 {
-    std::optional<int> socket;
+    std::optional<i32> socket;
     Message message;
     std::optional<Callback> callback;
 };
@@ -222,7 +222,7 @@ class Connection
 {
 protected:
     u32 nextReqId = 1;
-    std::unordered_map<std::pair<i32, u32>,Callback, pairHash> callbacks;
+    std::unordered_map<std::pair<i32, u32>, Callback, pairHash> callbacks;
 
     std::unique_ptr<std::mutex> outgoingMutex;
     std::vector<EnquedMessage> outgoingQueue;
@@ -234,14 +234,18 @@ protected:
     {
         const u32 next = nextReqId;
         nextReqId++;
+
         if(nextReqId == 0)
+        {
             nextReqId++;
+        }
         return next;
     }
+    virtual void runOutgoing() = 0;
+    virtual void runIncoming() = 0;
 public:
     virtual void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) = 0;
     virtual void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) = 0;
-    virtual std::optional<Message> getMessage() = 0;
 
     std::optional<Callback> getCallback(i32 socket, u32 reqId)
     {
@@ -265,456 +269,64 @@ public:
 
 class ServerConnection : public Connection
 {
-    int serverFileDescriptor;
+    i32 serverFileDescriptor;
 
     std::unique_ptr<std::mutex> socketsMutex;
-    std::list<int> sockets;
+    std::list<i32> sockets;
     sockaddr_in address;
 
     std::list<EnquedMessage> savedMessages;
 
 public:
-    void init(const IpInfo& ip)
-    {
-        logger.logInfo({
-            {"event", "Initializing ServerConnection"},
-            {"ip.address", ip.address},
-            {"ip.port", ip.port}
-        });
-
-        outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
-        incomingMutex = std::unique_ptr<std::mutex>(new std::mutex());
-        socketsMutex = std::unique_ptr<std::mutex>(new std::mutex());
-
-        if ((serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
-        { 
-            perror("socket failed"); 
-        } 
-        
-        address.sin_family = AF_INET; 
-        address.sin_addr.s_addr = INADDR_ANY; //0.0.0.0
-        address.sin_port = htons(ip.port); 
-        
-        if (bind(serverFileDescriptor,(sockaddr *)&address, sizeof(address)) < 0) 
-        {
-            logger.logError("Failed to Bind");
-            return;
-        }
-        if (listen(serverFileDescriptor, 3) < 0) 
-        {
-            logger.logError("Failed to Listen");
-            return;
-        }
-
-        logger.logInfo("ServerConnection established");
-
-        run();
-        runIncoming();
-    }
-
-    void acceptNewConnections(bool wait = false)
-    {
-        int new_socket;
-        int addrlen = sizeof(address);
-
-        struct timeval timeout;
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 1000;
-
-        fd_set read_fd_set;
-        FD_ZERO(&read_fd_set); 
-        FD_SET(serverFileDescriptor, &read_fd_set);
-
-        if(!wait)
-        {
-            int retval;
-            retval = select(serverFileDescriptor+1, &read_fd_set, NULL, NULL, &timeout);
-            if(retval <= 0)
-            {
-                return;
-            }
-        }
-
-        new_socket = accept(serverFileDescriptor, (sockaddr *)&address, (socklen_t*)&addrlen);
-        if(new_socket >= 0)
-        {
-            struct timeval tv;
-            tv.tv_sec = 0;
-            tv.tv_usec = 1000;
-            setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-            setsockopt(new_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
-            
-            {
-                std::lock_guard<std::mutex> lock(*socketsMutex);
-                sockets.push_back(new_socket);
-            }
-
-            logger.logInfo({
-                {"event", "ServerConnection: accepted new connection socket"},
-                {"new_socket", new_socket}
-            });
-        }
-    }
+    void init(const IpInfo& ip);
+    void acceptNewConnections(const bool wait = false);
 
     void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override
     {   
         std::lock_guard<std::mutex> lock(*outgoingMutex);
         outgoingQueue.push_back({ std::nullopt, msg, callback });
     }
-
     void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) override
     {
         sendMessage(msg, callback);
     }
-
     void sendMessage(int socket, Message& msg, std::optional<Callback> callback = std::nullopt)
     {   
         std::lock_guard<std::mutex> lock(*outgoingMutex);
         outgoingQueue.push_back({socket, msg, callback});
     }
-
     void sendMessage(int socket, Message&& msg, std::optional<Callback> callback = std::nullopt)
     {
         sendMessage(socket, msg, callback);
     }
+    
+    void runOutgoing();
+    void runIncoming();
+    void sendToAll(EnquedMessage& msg);
 
-    std::optional<Message> getMessage()
-    {
-        for(int socket : sockets)
-        {
-            std::optional<Message> potentialMsg = getFinalMessage(socket);
-            if(potentialMsg.has_value())
-            {
-                Message& msg = potentialMsg.value();
-                msg.logMsg("incoming");
-
-                auto it = callbacks.find(std::pair{socket, msg.reqId});
-                if(it != callbacks.end())
-                {
-                    it->second(msg);
-                    callbacks.erase(it);
-                    return std::nullopt; // Callback will process Message
-                }
-                else
-                {
-                    return potentialMsg; // Module will process Message
-                }
-            }
-        }
-
-        return std::nullopt;
-    }
-
-    void run()
-    {
-        std::thread outgoing([this]()
-        {
-            while(true)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-                if(!savedMessages.empty())
-                {
-                    for(auto it = std::begin(savedMessages); it != std::end(savedMessages); ++it)
-                    {
-                        auto status = sendToSingle(*it);
-                        if(status != ConnectionStatus::MessageNotSent)
-                        {
-                            savedMessages.erase(it);
-                        }
-                    }
-                }
-
-                std::vector<EnquedMessage> currentQueue;
-                {
-                    std::lock_guard<std::mutex> lock(*outgoingMutex);
-                    if(outgoingQueue.empty())
-                    {
-                        continue;
-                    }
-                    currentQueue.swap(outgoingQueue);
-                }
-                
-                for(auto& msg : currentQueue)
-                {
-                    msg.message.logMsg("outgoing");
-                    if(msg.socket.has_value())
-                    {
-                        if(sendToSingle(msg) == ConnectionStatus::MessageNotSent)
-                        {
-                            savedMessages.push_back({msg.socket.value(), std::move(msg.message), std::nullopt});
-                        }
-                    }
-                    else
-                    {
-                        sendToAll(msg);
-                    }
-                }
-            }
-        });
-        outgoing.detach();
-    }
-
-    void runIncoming()
-    {
-        std::thread incoming([this]()
-        {
-            while(true)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                acceptNewConnections();
-                std::lock_guard<std::mutex> lock(*socketsMutex);
-                for(int socket : sockets)
-                {
-                    std::optional<Message> potentialMsg = getFinalMessage(socket);
-                    if(potentialMsg.has_value())
-                    {
-                        Message& msg = potentialMsg.value();
-                        msg.logMsg("incoming");
-
-                        std::lock_guard<std::mutex> lock(*incomingMutex);
-                        incomingQueue.push_back({
-                            socket,
-                            std::move(msg),
-                            std::move(getCallback(socket, msg.reqId))});
-                    }
-                }
-            }
-        });
-        incoming.detach();
-    }
-
-    void sendToAll(EnquedMessage& msg)
-    {
-        const bool generateRequestId = msg.message.reqId == 0;
-
-        for(auto it = begin(sockets); it != end(sockets); ++it)
-        {
-            if(generateRequestId)
-            {
-                msg.message.reqId = getNextReqId();
-            }
-            else
-            {
-                msg.message.isReply = true;
-            }
-
-            if(msg.callback.has_value())
-            {
-                callbacks[std::pair{*it, msg.message.reqId}] = msg.callback.value();
-            }
-
-            msg.message.logMsg("outgoing");
-
-            auto status = sendFinalMessage(*it, msg.message);
-            if(status == ConnectionStatus::Disconnected)
-            {
-                logger.logWarning({
-                    {"event", "Connection closed; could not send message. Deleting."},
-                    {"socket", *it}
-                });
-                
-                std::lock_guard<std::mutex> lock(*socketsMutex);
-                sockets.erase(it);
-            }
-            else if(status == ConnectionStatus::MessageNotSent)
-            {
-                savedMessages.push_back({*it, msg.message, std::nullopt});
-            }
-        }
-    }
-
-    ConnectionStatus sendToSingle(EnquedMessage& msg)
-    {
-        if(msg.message.reqId == 0)
-        {
-            msg.message.reqId = getNextReqId();
-        }
-        else
-        {
-            msg.message.isReply = true;
-        }
-
-        if(msg.callback.has_value())
-        {
-            callbacks[std::pair{msg.socket.value(), msg.message.reqId}] = msg.callback.value();
-        }
-        return sendFinalMessage(msg.socket.value(), msg.message);
-    }
+    ConnectionStatus sendToSingle(EnquedMessage& msg);
 };
 
 class ClientConnection : public Connection
 {
-    int socketFileDescriptor;
+    i32 socketFileDescriptor;
 
 public:
-    void init(const IpInfo& ip)
-    {
-        logger.logInfo({
-            {"event", "Initializing ClientConnection"},
-            {"ip.address", ip.address},
-            {"ip.port", ip.port}
-        });
-
-        outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
-        incomingMutex = std::unique_ptr<std::mutex>(new std::mutex());
-
-        sockaddr_in serv_addr;
-
-        socketFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
-        if (socketFileDescriptor < 0)
-        { 
-            logger.logError("Socket creation error");
-            return;
-        } 
-    
-        serv_addr.sin_family = AF_INET; 
-        serv_addr.sin_port = htons(ip.port); 
-        
-        if(inet_pton(AF_INET, ip.address.c_str(), &serv_addr.sin_addr) <= 0)  
-        { 
-            logger.logError("Invalid address/ Address not supported");
-            return; 
-        } 
-    
-        if (connect(socketFileDescriptor, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
-        { 
-            logger.logError("Connection Failed");
-            return; 
-        }
-
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 1000;
-        setsockopt(socketFileDescriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-        setsockopt(socketFileDescriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
-
-        logger.logInfo("ClientConnection established");
-
-        run();
-        runIncoming();
-    }
+    void init(const IpInfo& ip);
 
     int getSocket() const
     {
         return socketFileDescriptor;
     }
-
     void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) override
     {
         std::lock_guard<std::mutex> lock(*outgoingMutex);
         outgoingQueue.push_back({ std::nullopt, msg, callback });
     }
-
     void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) override
     {
         sendMessage(msg, callback);
     }
-
-    std::optional<Message> getMessage() override
-    {
-        std::optional<Message> potentialMsg = getFinalMessage(socketFileDescriptor);
-        if(potentialMsg.has_value())
-        {
-            Message& msg = potentialMsg.value();
-            msg.logMsg("incoming");
-            
-            auto it = callbacks.find(std::pair{socketFileDescriptor, msg.reqId});
-            if(it != callbacks.end())
-            {
-                it->second(msg);
-                callbacks.erase(it);
-                return std::nullopt; // Callback will process Message
-            }
-            else
-            {
-                return potentialMsg; // Module will process Message
-            }
-        }
-        else
-        {
-            return std::nullopt;
-        }
-    }
-
-    void run()
-    {
-        std::thread outgoing([this]()
-        {
-            std::list<Message> savedMessages;
-            while(true)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-                for(auto it = std::begin(savedMessages); it != std::end(savedMessages); ++it)
-                {
-                    auto status = sendFinalMessage(socketFileDescriptor, *it);
-                    if(status != ConnectionStatus::MessageNotSent)
-                    {
-                        savedMessages.erase(it);
-                    }
-                }
-
-                std::vector<EnquedMessage> currentQueue;
-                {
-                    std::lock_guard<std::mutex> lock(*outgoingMutex);
-                    if(outgoingQueue.empty())
-                    {
-                        continue;
-                    }
-                    currentQueue.swap(outgoingQueue);
-                }
-
-                for(auto& msg : currentQueue)
-                {
-                    msg.message.logMsg("outgoing");
-                    if(msg.message.reqId == 0)
-                    {
-                        msg.message.reqId = getNextReqId();
-                    }
-                    else
-                    {
-                        msg.message.isReply = true;
-                    }
-
-                    if(msg.callback.has_value())
-                    {
-                        callbacks[std::pair{socketFileDescriptor, msg.message.reqId}] = msg.callback.value();
-                    }
-
-                    auto status = sendFinalMessage(socketFileDescriptor, msg.message);
-                    if(status == ConnectionStatus::MessageNotSent)
-                    {
-                        savedMessages.push_back(std::move(msg.message));
-                    }
-                }
-                
-            }
-        });
-        outgoing.detach();
-    }
-
-    void runIncoming()
-    {
-        std::thread incoming([this]()
-        {
-            while(true)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                std::optional<Message> potentialMsg = getFinalMessage(socketFileDescriptor);
-                if(potentialMsg.has_value())
-                {
-                    Message& msg = potentialMsg.value();
-                    msg.logMsg("incoming");
-
-                    std::lock_guard<std::mutex> lock(*incomingMutex);
-                    incomingQueue.push_back({
-                        socketFileDescriptor,
-                        std::move(msg),
-                        std::move(getCallback(socketFileDescriptor, msg.reqId))});
-                }
-            }
-        });
-        incoming.detach();
-    }
+    void runOutgoing();
+    void runIncoming();
 };

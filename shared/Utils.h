@@ -10,6 +10,8 @@
 #include "Types.h"
 #include "../simple-time/SimpleTime.h"
 
+constexpr u64 ONE_SECOND = 1000000;
+
 template<typename T>
 class AtomicChannel
 {
@@ -61,8 +63,6 @@ IpInfo strToIp(str s);
 std::vector<str> splitStr(const str& input);
 
 u64 getCurrentUnixTime();
-
-constexpr u64 ONE_SECOND = 1000000;
 
 struct pairHash
 {

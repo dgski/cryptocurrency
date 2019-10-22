@@ -37,7 +37,7 @@ void LogCollector::changeDateIfNecessary()
 {
     SimpleTime now;
     now.setNowLocal();
-    str potentialNewPath = logPath + "/" + now.toString("%Y_%m_%d") + "/";
+    str potentialNewPath = logPath + '/' + now.toString("%Y_%m_%d") + '/';
 
     if(currentPath != potentialNewPath)
     {
@@ -68,7 +68,7 @@ void LogCollector::processLogReady(const Message& msg)
     connFromModules.sendMessage(
         msg.socket,
         outgoing.msg(msg.reqId),
-        [this, name = incoming.name](const Message& msg)
+        [this, name = std::move(incoming.name)](const Message& msg)
         {
             processLogArchive(msg, name);
         }
@@ -90,8 +90,14 @@ void LogCollector::processLogArchive(const Message& msg, const str& name)
     std::ofstream logFile(currentPath + name + ".log", std::ios_base::openmode::_S_app);
     if(!logFile.is_open())
     {
-        throw std::runtime_error("Could not open log file");
+        logger.logError({
+            {"event", "Could not open log file."},
+            {"name", name}
+        });
+
+        return;
     }
+    
     logFile << incoming.log;
 
     MSG_LOGCOLLECTOR_MODULE_LOGREQUEST outgoing;

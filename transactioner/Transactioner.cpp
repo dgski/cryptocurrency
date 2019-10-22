@@ -39,16 +39,15 @@ void Transactioner::processRequestForTransactions(const Message& msg)
     MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
 
     MSG_A_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
+
     if(waitingTransactions.empty())
     {
         logger.logInfo("No waiting transactions");
     }
     else if(waitingTransactions.size() <= incoming.numOfTransReq)
     {
-        outgoing.transactions.splice(
-            std::cbegin(outgoing.transactions),
-            waitingTransactions
-        );
+        outgoing.transactions = std::move(waitingTransactions);
+        waitingTransactions.clear();
     }
     else
     {
@@ -81,7 +80,7 @@ void Transactioner::processAddNewTransaction(const Message& msg)
     outgoing.publicWalletKey = incoming.transaction.sender;
     connToManager.sendMessage(
         outgoing.msg(),
-        [this, transaction = incoming.transaction](const Message& msg)
+        [this, transaction = incoming.transaction](const Message& msg) mutable
         {
             processAddNewTransaction_Finalize(msg, transaction);
         }
@@ -90,11 +89,11 @@ void Transactioner::processAddNewTransaction(const Message& msg)
 
 void Transactioner::processAddNewTransaction_Finalize(
     const Message& msg,
-    const Transaction& transaction)
+    Transaction& transaction)
 {
     MSG_TRANSACTIONER_MANAGER_FUNDSINWALLET_REPLY incoming{ msg };
 
-    if(transaction.amount > incoming.amount)
+    if(transaction.amount >= incoming.amount)
     {
         logger.logInfo({
             {"event", "Not enough funds in wallet. Rejecting Transaction."},
@@ -105,7 +104,8 @@ void Transactioner::processAddNewTransaction_Finalize(
     }
     
     logger.logInfo("Adding transaction");
-    waitingTransactions.push_back(transaction);
+    waitingTransactions.push_back(std::move(transaction));
+
     logger.logInfo({
         {"event", "Total waiting transactions report"},
         {"waitingTransactions.size()", (u64)waitingTransactions.size()}
