@@ -221,14 +221,19 @@ struct EnquedMessage
 class Connection
 {
 protected:
+    bool running = false;
     u32 nextReqId = 1;
     std::unordered_map<std::pair<i32, u32>, Callback, pairHash> callbacks;
 
+    std::unique_ptr<std::thread> outgoingThread;
     std::unique_ptr<std::mutex> outgoingMutex;
     std::vector<EnquedMessage> outgoingQueue;
 
+    std::unique_ptr<std::thread> incomingThread;
     std::unique_ptr<std::mutex> incomingMutex;
     std::vector<EnquedMessage> incomingQueue;
+
+    std::atomic<bool> shuttingDown = false;
 
     u32 getNextReqId()
     {
@@ -243,6 +248,7 @@ protected:
     }
     virtual void runOutgoing() = 0;
     virtual void runIncoming() = 0;
+    virtual void closeSockets() = 0;
 public:
     virtual void sendMessage(Message& msg, std::optional<Callback> callback = std::nullopt) = 0;
     virtual void sendMessage(Message&& msg, std::optional<Callback> callback = std::nullopt) = 0;
@@ -265,6 +271,7 @@ public:
         std::lock_guard<std::mutex> lock(*incomingMutex);
         std::swap(_incomingQueue, incomingQueue);
     }
+    Connection(){}
 };
 
 class ServerConnection : public Connection
@@ -276,6 +283,15 @@ class ServerConnection : public Connection
     sockaddr_in address;
 
     std::list<EnquedMessage> savedMessages;
+protected:
+    void closeSockets()
+    {
+        shutdown(serverFileDescriptor, 2 /* incoming and outgoing */);
+        for(i32 socket : sockets)
+        {
+            shutdown(serverFileDescriptor, 2 /* incoming and outgoing */);
+        }
+    }
 
 public:
     void init(const IpInfo& ip);
@@ -305,11 +321,36 @@ public:
     void sendToAll(EnquedMessage& msg);
 
     ConnectionStatus sendToSingle(EnquedMessage& msg);
+    ServerConnection(){}
+    ~ServerConnection()
+    {
+        if(!running)
+        {
+            return;
+        }
+
+        shuttingDown.store(true);
+        if(outgoingThread && outgoingThread->joinable())
+        {
+            outgoingThread->join();
+        }
+        if(incomingThread && incomingThread->joinable())
+        {
+            incomingThread->join();
+        }
+        closeSockets();
+    }
 };
 
 class ClientConnection : public Connection
 {
     i32 socketFileDescriptor;
+
+protected:
+    void closeSockets()
+    {
+        shutdown(socketFileDescriptor, 2 /* incoming and outgoing */);
+    }
 
 public:
     void init(const IpInfo& ip);
@@ -329,4 +370,25 @@ public:
     }
     void runOutgoing();
     void runIncoming();
+
+    ClientConnection(){}
+    ~ClientConnection()
+    {
+        if(!running)
+        {
+            return;
+        }
+
+        shuttingDown.store(true);
+
+        if(outgoingThread && outgoingThread->joinable())
+        {
+            outgoingThread->join();
+        }
+        if(incomingThread && incomingThread->joinable())
+        {
+            incomingThread->join();
+        }
+        closeSockets();
+    }
 };

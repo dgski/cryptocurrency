@@ -38,8 +38,10 @@ class Module
     std::ofstream logFile;
 
     ClientConnection connToLogCollector;
+
 protected:
     const str moduleName;
+    std::atomic<bool> shuttingDown = false;
 public:
     bool logCollectionEnabled = true;
     
@@ -96,10 +98,5 @@ public:
             {"event", "Unhandled MSG"},
             {"msgId", msg.id}
         });
-    }
-
-    ~Module()
-    {
-        
     }
 };

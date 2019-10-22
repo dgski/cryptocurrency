@@ -1,33 +1,56 @@
+#include <csignal>
+
 #include "Module.h"
 
+std::atomic<bool>* shuttingDownPtr;
+
+void setShutdown(int)
+{
+    shuttingDownPtr->store(true);
+    logger.logInfo("Received shutdown signal. Winding down...");
+};
+
 void Module::init(const std::map<str,str>& params)
+{
+    shuttingDownPtr = &shuttingDown;
+
+    logFileName = params.at("logFileName");
+
+    logFile.open(logFileName.c_str(), std::ios_base::openmode::_S_app);
+    if(!logFile.is_open())
     {
-        logFileName = params.at("logFileName");
-
-        logFile.open(logFileName.c_str(), std::ios_base::openmode::_S_app);
-        if(!logFile.is_open())
-        {
-            throw std::runtime_error("Could not open file!");
-        }
-        logger.addOutputStream(&std::cout);
-        logger.addOutputStream(&logFile);
-        logger.run();
-
-        if(logCollectionEnabled)
-        {
-            connToLogCollector.init(strToIp(params.at("connToLogCollector")));
-            registerClientConnection(&connToLogCollector);
-            registerScheduledTask(LOG_FREQUENCY, [this]()
-            {
-                prepareLogArchive();
-            });
-        }
+        throw std::runtime_error("Could not open file!");
     }
+    logger.addOutputStream(&std::cout);
+    logger.addOutputStream(&logFile);
+    logger.run();
+
+    if(logCollectionEnabled)
+    {
+        connToLogCollector.init(strToIp(params.at("connToLogCollector")));
+        registerClientConnection(&connToLogCollector);
+        registerScheduledTask(LOG_FREQUENCY, [this]()
+        {
+            prepareLogArchive();
+        });
+    }
+
+    for(i32 code : {SIGINT, SIGSTOP, SIGKILL, SIGTSTP, SIGTERM})
+    {
+        std::signal(code, setShutdown);
+    }
+}
 
 void Module::run()
 {
     while(true)
     {
+        if(shuttingDown.load())
+        {
+            logger.endLogging();
+            return;
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         std::vector<EnquedMessage> incomingQueue;
         try

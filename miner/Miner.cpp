@@ -47,7 +47,7 @@ void Miner::startMining()
 void Miner::stopMining()
 {
     logger.logInfo("Stopping mining");
-
+    miningThread->join();
     currentlyMining = false;
 }
 
@@ -74,6 +74,11 @@ void Miner::mine()
         }
 
         nonce += incrementSize;
+
+        if(shuttingDown.load())
+        {
+            return;
+        }
     }
 }
 

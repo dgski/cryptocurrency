@@ -86,7 +86,7 @@ static const char* toJSONString(LogLevel level)
         case LogLevel::Info: return "\"info\"";
         case LogLevel::Warning: return "\"warning\"";
         case LogLevel::Error: return "\"error\"";
-        default: return "unmapped";
+        default: return "\"unmapped\"";
     }
 }
 
@@ -137,6 +137,11 @@ class Logger
 
     void log(const LogLevel level, std::vector<std::pair<const char*, Loggable>>& contents)
     {
+        if(waitingToDestruct.load())
+        {
+            return;
+        }
+
         std::lock_guard<std::mutex> lock(logQueueMutex);
         logQueue.push_back({level, getCurrentUnixTime(), std::move(contents)});
     }
@@ -209,17 +214,20 @@ public:
         streams.outputStreams.push_back(os);
     }
 
+    void removeOutputStream(std::ostream* os)
+    {
+        std::remove(
+            std::begin(streams.outputStreams),
+            std::end(streams.outputStreams),
+            os
+        );
+    }
+
     void endLogging()
     {
         waitingToDestruct.store(true);
         outputThread->join();
         streams.outputStreams.clear();
-    }
-
-    ~Logger()
-    {
-        waitingToDestruct.store(true);
-        outputThread->join();
     }
 };
 

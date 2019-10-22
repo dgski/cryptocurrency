@@ -19,4 +19,12 @@ public:
     void checkProof();
     void processManagerNewBaseHash(const Message& msg);
     void requestNewBaseHash();
+
+    ~Miner()
+    {
+        if(miningThread && miningThread->joinable())
+        {
+            miningThread->join();
+        }
+    }
 };

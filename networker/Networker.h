@@ -3,7 +3,7 @@
 class Networker : public Module
 {
     ClientConnection connToManager;
-    std::vector<ClientConnection> connsToOtherNodes;
+    std::list<ClientConnection> connsToOtherNodes;
     ServerConnection connFromOtherNodes;
 public:
     Networker(const char* iniFileName);

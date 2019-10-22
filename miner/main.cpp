@@ -4,7 +4,6 @@ int main(int argc, const char* argv[])
 {
     if(argc != 2)
     {
-        logger.logError("Improper Usage");
         return -1;
     }
 

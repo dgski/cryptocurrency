@@ -81,9 +81,9 @@ void ServerConnection::init(const IpInfo& ip)
         {"ip.port", ip.port}
     });
 
-    outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
-    incomingMutex = std::unique_ptr<std::mutex>(new std::mutex());
-    socketsMutex = std::unique_ptr<std::mutex>(new std::mutex());
+    outgoingMutex = std::make_unique<std::mutex>();
+    incomingMutex = std::make_unique<std::mutex>();
+    socketsMutex = std::make_unique<std::mutex>();
 
     if ((serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
     { 
@@ -107,8 +107,10 @@ void ServerConnection::init(const IpInfo& ip)
 
     logger.logInfo("ServerConnection established");
 
-    std::thread(&ServerConnection::runOutgoing, this).detach();
-    std::thread(&ServerConnection::runIncoming, this).detach();
+    outgoingThread = std::make_unique<std::thread>(&ServerConnection::runOutgoing, this);
+    incomingThread = std::make_unique<std::thread>(&ServerConnection::runIncoming, this);
+
+    running = true;
 }
 
 void ServerConnection::acceptNewConnections(const bool wait)
@@ -159,6 +161,11 @@ void ServerConnection::runOutgoing()
 {
     while(true)
     {
+        if(shuttingDown.load())
+        {
+            return;
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         if(!savedMessages.empty())
@@ -205,6 +212,11 @@ void ServerConnection::runIncoming()
 {
     while(true)
     {
+        if(shuttingDown.load())
+        {
+            return;
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         acceptNewConnections();
         std::lock_guard<std::mutex> lock(*socketsMutex);
@@ -293,8 +305,8 @@ void ClientConnection::init(const IpInfo& ip)
         {"ip.port", ip.port}
     });
 
-    outgoingMutex = std::unique_ptr<std::mutex>(new std::mutex());
-    incomingMutex = std::unique_ptr<std::mutex>(new std::mutex());
+    outgoingMutex = std::make_unique<std::mutex>();
+    incomingMutex = std::make_unique<std::mutex>();
 
     sockaddr_in serv_addr;
 
@@ -328,8 +340,10 @@ void ClientConnection::init(const IpInfo& ip)
 
     logger.logInfo("ClientConnection established");
 
-    std::thread(&ClientConnection::runOutgoing, this).detach();
-    std::thread(&ClientConnection::runIncoming, this).detach();
+    outgoingThread = std::make_unique<std::thread>(&ClientConnection::runOutgoing, this);
+    incomingThread = std::make_unique<std::thread>(&ClientConnection::runIncoming, this);
+
+    running = true;
 }
 
 void ClientConnection::runOutgoing()
@@ -337,6 +351,12 @@ void ClientConnection::runOutgoing()
     std::list<Message> savedMessages;
     while(true)
     {
+        if(shuttingDown.load())
+        {
+            shutdown(socketFileDescriptor, 1);
+            return;
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         for(auto it = std::begin(savedMessages); it != std::end(savedMessages); ++it)
@@ -389,6 +409,12 @@ void ClientConnection::runIncoming()
 {
     while(true)
     {
+        if(shuttingDown.load())
+        {
+            shutdown(socketFileDescriptor, 0);
+            return;
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         std::optional<Message> potentialMsg = getFinalMessage(socketFileDescriptor);
         if(potentialMsg.has_value())
