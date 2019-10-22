@@ -3,19 +3,26 @@
 Responsible for connections to other nodes. Propagates new blocks from the local Manager module to the outside world and forwards new external blocks for consumption by the Manager module.
 
 ## Incoming Messages
+- MSG_LOGCOLLECTOR_MODULE_LOGREQUEST - Requests log archives
 - MSG_MANAGER_NETWORKER_NEWBLOCK - New Block to Propagate from Manager
 - MSG_NETWORKER_NETWORKER_REGISTERME - Request from external node asking to be part of block propagation
 - MSG_NETWORKER_NETWORKER_NEWBLOCK - Incoming Block from an external Node
-- MSG_MANAGER_NETWORKER_CHAINREQUEST - A chain request to an external node from the Manager module
-- MSG_NETWORKER_NETWORKER_CHAINREQUEST - A chain request from an external node to the Manager module
+- MSG_NETWORKER_NETWORKER_BLOCKREQUEST - A request for a block with the provided id from another Node
+MSG_MANAGER_NETWORKER_BLOCK - An externally requested block, requested of local Manager, now in response from said Manager.
 
 ## Outgoing Messages
-- MSG_NETWORKER_NETWORKER_NEWBLOCK - New Block for Other Nodes
-- MSG_NETWORKER_MANAGER_NEWBLOCK - New Block from other nodes for manager
-- MSG_NETWORKER_NETWORKER_CHAINREQUEST - Request for a chain for another node
-- MSG_NETWORKER_MANAGER_CHAIN - A chain for the Manager module
-- MSG_NETWORKER_MANAGER_CHAINREQUEST - A chain request from an external node to the Manager module
-- MSG_NETWORKER_NETWORKER_CHAIN - A chain from an external node
+- MSG_MODULE_LOGCOLLECTOR_LOGREADY - Signals to LogCollector that logs are ready to be archived
+- MSG_MODULE_LOGCOLLECTOR_LOGARCHIVE_CHUNK - A chunk of the archived log
+- MSG_NETWORKER_NETWORKER_NEWBLOCK - Locally mined block for propagation
+- MSG_NETWORKER_MANAGER_NEWBLOCK - New incoming foreign block to be propagated to Manager for confirmation
+- MSG_NETWORKER_NETWORKER_BLOCKREQUEST - A request for a block with the provided id to another Node
+- MSG_NETWORKER_MANAGER_BLOCK - An incoming block, in response to a request
+- MSG_NETWORKER_MANAGER_BLOCKREQUEST - forward an external block request to the local Manager
+- MSG_NETWORKER_NETWORKER_BLOCK - Requested block response to external Node.
+
+## Connections
+- Manager
+- LogCollector
 
 ## Configuration Parameters
 - logFileName - string value of filename for log output

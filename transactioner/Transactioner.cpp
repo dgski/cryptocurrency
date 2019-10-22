@@ -16,7 +16,7 @@ void Transactioner::processMessage(const Message& msg)
 {
     switch(msg.id)
     {
-        case MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ::id:
+        case MSG_MANAGER_TRANSACTIONER_TRANSREQ::id:
         {
             processRequestForTransactions(msg);
             return;
@@ -36,9 +36,9 @@ void Transactioner::processMessage(const Message& msg)
 
 void Transactioner::processRequestForTransactions(const Message& msg)
 {
-    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
 
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ_REPLY outgoing;
 
     if(waitingTransactions.empty())
     {

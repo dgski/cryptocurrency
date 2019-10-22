@@ -114,14 +114,14 @@ struct MSG_MINER_MANAGER_PROOFOFWORK : public MSG_STRUCT
     }
 };
 
-struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
+struct MSG_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
 {
     constexpr static u32 id = 2;
     u64 numOfTransReq;
 
-    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(){}
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ(){}
 
-    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ(const Message& msg)
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -144,20 +144,20 @@ struct MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ"},
+            {"name", "MSG_MANAGER_TRANSACTIONER_TRANSREQ"},
             {"numOfTransReq", numOfTransReq}
         });
     }
 };
 
-struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
+struct MSG_MANAGER_TRANSACTIONER_TRANSREQ_REPLY : public MSG_STRUCT
 {
     constexpr static u32 id = 3;
     std::list<Transaction> transactions;
 
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(){}
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ_REPLY(){}
 
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ(const Message& msg)
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ_REPLY(const Message& msg)
     {
         checkId<id>(msg);
         Parser parser(msg);
@@ -180,7 +180,7 @@ struct MSG_A_MANAGER_TRANSACTIONER_TRANSREQ : public MSG_STRUCT
     {
         logger.logInfo({
             {"event", "message"},
-            {"name", "MSG_A_MANAGER_TRANSACTIONER_TRANSREQ"},
+            {"name", "MSG_MANAGER_TRANSACTIONER_TRANSREQ_REPLY"},
             {"transactions.size()", (u64)transactions.size()}
         });
     }

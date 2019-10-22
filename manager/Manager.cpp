@@ -73,7 +73,7 @@ void Manager::askTransactionerForNewTransactions()
         return;
     }
 
-    MSG_Q_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ outgoing;
     outgoing.numOfTransReq = 200 - currentBlock.transactions.size();
     
     connFromTransactioner.sendMessage(outgoing.msg(), [this](const Message& reply)
@@ -89,7 +89,7 @@ void Manager::askTransactionerForNewTransactions()
 
 void Manager::processTransactionRequestReply(const Message& msg)
 {
-    MSG_A_MANAGER_TRANSACTIONER_TRANSREQ incoming{ msg };
+    MSG_MANAGER_TRANSACTIONER_TRANSREQ_REPLY incoming{ msg };
     
     for(Transaction& t : incoming.transactions)
     {
